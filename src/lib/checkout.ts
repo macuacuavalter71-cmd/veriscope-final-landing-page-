@@ -109,7 +109,9 @@ export async function goToPaymentGateway(order: OrderDraft, bumpSelected: boolea
   persistOrderDraft({
     ...order,
     status: "pending",
-  });
+    // Bump selection is kept with the draft; Paymento has no separate link for it.
+    ...(bumpSelected ? { bump: true } : {}),
+  } as OrderDraft);
 
   await createPendingOrder(order.productId);
 
