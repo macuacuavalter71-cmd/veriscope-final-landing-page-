@@ -37,36 +37,24 @@ export const Route = createFileRoute("/downsell/intelligence")({
 });
 
 function DownsellIntelligence() {
-  const [promptPack, setPromptPack] = useState(false);
-
-  useEffect(() => {
-    initFunnelState();
-  }, []);
+  const [busy, setBusy] = useState(false);
 
   const accept = () => {
-    acceptOffer(OFFERS.downsell1, [
-      { id: "intelligence", name: INTELLIGENCE.name, price: INTELLIGENCE.downsellPrice },
-    ]);
-    setPromptPack(true);
+    if (busy) return;
+    setBusy(true);
+    markAnswered(OFFERS.intelligenceDownsell);
+    setIntelligencePath("downsell");
+    void buy("intelligence_downsell");
   };
 
-  // Refusing here closes the Intelligence offer for good.
+  // Refusing here closes the Intelligence offer for good: straight to delivery.
   const decline = () => {
-    declineOffer(OFFERS.downsell1);
-    goTo(ROUTES.upsell2);
+    markAnswered(OFFERS.intelligenceDownsell);
+    void nextStepForSession().then((step) =>
+      goTo(step.kind === "go" ? step.path : RETURN_PATH),
+    );
   };
 
-  const acceptPack = () => {
-    acceptOffer(OFFERS.promptPack, [
-      { id: "prompt-pack", name: AI_PROMPT_PACK.name, price: AI_PROMPT_PACK.offerPrice },
-    ]);
-    goTo(ROUTES.upsell2);
-  };
-
-  const declinePack = () => {
-    declineOffer(OFFERS.promptPack);
-    goTo(ROUTES.upsell2);
-  };
 
   return (
     <div className="min-h-screen bg-background">
