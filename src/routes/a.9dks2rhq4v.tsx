@@ -21,7 +21,6 @@ function Page() {
   return (
     <DeliveryPage
       title="Veriscope Prime + Intelligence + AI Prompt Pack"
-      requiredProducts={["prime", "intelligence_aiprompt"]}
       items={["prime", "intelligence", "prompt-pack"]}
     />
   );

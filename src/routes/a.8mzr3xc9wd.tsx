@@ -21,7 +21,6 @@ function Page() {
   return (
     <DeliveryPage
       title="Veriscope Prime"
-      requiredProducts={["prime"]}
       items={["prime"]}
     />
   );

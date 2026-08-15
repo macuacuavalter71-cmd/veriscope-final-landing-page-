@@ -1,21 +1,17 @@
 /**
  * Delivery page shell.
  *
- * Nothing is shown because the visitor reached the URL: on mount the page asks
- * the database for `orders` rows with this session_id, the required product_ids
- * and status = "paid". Only that answer unlocks the content.
+ * The page shows exactly the products of the purchase that led here — nothing
+ * more. The Trader Checklist is added only when the customer bought one of the
+ * "+ Trader Checklist" offers.
  */
 import { useEffect, useState } from "react";
 
 import { Header } from "./Header";
 import { Section } from "./Section";
 import { DELIVERY_CATALOG, DELIVERY_ORDER, type DeliveryProduct } from "@/lib/delivery-catalog";
-import { fetchPaidProducts } from "@/lib/orders";
-import { getSessionId } from "@/lib/session";
 import { getPineSource } from "@/lib/delivery.functions";
-import type { OrderProductId } from "@/lib/supabase";
-
-type State = "checking" | "granted" | "denied";
+import { readPurchase } from "@/lib/offers";
 
 function PineBlock({ productId }: { productId: "prime" | "intelligence" }) {
   const [source, setSource] = useState<string | null>(null);
@@ -23,7 +19,7 @@ function PineBlock({ productId }: { productId: "prime" | "intelligence" }) {
 
   const load = () => {
     setError(false);
-    getPineSource({ data: { sessionId: getSessionId(), productId } })
+    getPineSource({ data: { productId } })
       .then((r) => setSource(r.source))
       .catch(() => setError(true));
   };
@@ -44,7 +40,7 @@ function PineBlock({ productId }: { productId: "prime" | "intelligence" }) {
         </pre>
       )}
       {error ? (
-        <p className="mt-2 text-xs text-destructive">Não foi possível validar a compra.</p>
+        <p className="mt-2 text-xs text-destructive">Não foi possível carregar o Pine Script.</p>
       ) : null}
     </div>
   );
@@ -78,30 +74,22 @@ function ProductBlock({ product }: { product: DeliveryProduct }) {
 
 export function DeliveryPage({
   title,
-  requiredProducts,
   items,
 }: {
   title: string;
-  /** product_id values that must all be "paid" for this session. */
-  requiredProducts: OrderProductId[];
-  /** Catalogue keys unlocked by this combination. */
+  /** Catalogue keys included in this exact purchase. */
   items: string[];
 }) {
-  const [state, setState] = useState<State>("checking");
+  const [checklist, setChecklist] = useState(false);
 
+  // The Trader Checklist is only part of the delivery when the customer chose
+  // one of the "+ Trader Checklist" offers on the cart page.
   useEffect(() => {
-    let cancelled = false;
-    void fetchPaidProducts(getSessionId()).then((paid) => {
-      if (cancelled) return;
-      setState(requiredProducts.every((p) => paid.has(p)) ? "granted" : "denied");
-    });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setChecklist(readPurchase().checklist);
   }, []);
 
-  const ordered = DELIVERY_ORDER.filter((id) => items.includes(id)).map(
+  const keys = checklist ? [...items, "checklist"] : items;
+  const ordered = DELIVERY_ORDER.filter((id) => keys.includes(id)).map(
     (id) => DELIVERY_CATALOG[id]!,
   );
 
@@ -110,34 +98,36 @@ export function DeliveryPage({
       <Header live />
       <main className="pb-24">
         <Section className="pt-10 pb-8 sm:pt-14">
-          <h1 className="font-display text-xl tracking-tight uppercase sm:text-2xl">{title}</h1>
-
-          {state === "checking" ? (
-            <p className="mt-4 text-sm text-muted-foreground">A validar a sua compra…</p>
-          ) : null}
-
-          {state === "denied" ? (
-            <div className="panel mt-6 p-6">
-              <p className="text-sm text-destructive">
-                Não encontrámos um pagamento confirmado para este acesso.
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Se acabou de pagar, aguarde alguns segundos e atualize a página. Caso o problema
-                persista, contacte o suporte.
-              </p>
-            </div>
-          ) : null}
+          <p className="eyebrow">Acesso liberado</p>
+          <h1 className="mt-3 font-display text-xl tracking-tight uppercase sm:text-2xl">
+            O seu sistema Veriscope está pronto.
+          </h1>
+          <p className="mt-4 text-sm text-muted-foreground">{title}</p>
         </Section>
 
-        {state === "granted" ? (
-          <Section className="pb-8">
-            <div className="grid gap-5">
+        <Section className="pb-8">
+          <div className="grid gap-5">
+            {ordered.map((p) => (
+              <ProductBlock key={p.id} product={p} />
+            ))}
+          </div>
+        </Section>
+
+        <Section className="pb-8">
+          <div className="panel p-6 sm:p-7">
+            <h2 className="text-xs tracking-[0.14em] text-muted-foreground uppercase">
+              Resumo da compra
+            </h2>
+            <ul className="mt-4 space-y-2 text-sm">
               {ordered.map((p) => (
-                <ProductBlock key={p.id} product={p} />
+                <li key={p.id} className="flex items-center gap-2 text-foreground">
+                  <span className="h-1 w-1 rounded-full bg-gold/60" />
+                  {p.name}
+                </li>
               ))}
-            </div>
-          </Section>
-        ) : null}
+            </ul>
+          </div>
+        </Section>
       </main>
     </div>
   );

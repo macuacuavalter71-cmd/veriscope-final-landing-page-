@@ -62,7 +62,7 @@ export const DELIVERY_CATALOG: Record<string, DeliveryProduct> = {
   },
   checklist: {
     id: "checklist",
-    name: "Veriscope Trade Checklist",
+    name: "Veriscope Trader Checklist",
     description: "Um checklist prático para organizar sua análise antes de uma operação.",
     pine: false,
     files: [

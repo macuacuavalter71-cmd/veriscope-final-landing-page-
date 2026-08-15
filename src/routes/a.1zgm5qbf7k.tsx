@@ -21,7 +21,6 @@ function Page() {
   return (
     <DeliveryPage
       title="Prime + Edge Bundle + Intelligence + AI Prompt Pack"
-      requiredProducts={["bundle", "intelligence_aiprompt"]}
       items={["prime", "edge", "intelligence", "prompt-pack"]}
     />
   );

@@ -11,15 +11,7 @@ import {
   PromptPackModal,
 } from "@/components/veriscope/FunnelUI";
 import { INTELLIGENCE, INTELLIGENCE_SCREENSHOTS, formatPrice } from "@/lib/veriscope";
-import { buy } from "@/lib/orders";
-import {
-  OFFERS,
-  RETURN_PATH,
-  goTo,
-  markAnswered,
-  nextStepForSession,
-  setIntelligencePath,
-} from "@/lib/funnel";
+import { deliveryPath, goTo, goToPaymentLink, updatePurchase } from "@/lib/offers";
 
 
 const title = "Uma última possibilidade — Veriscope Intelligence";
@@ -54,18 +46,15 @@ function DownsellIntelligence() {
   const confirm = (withPromptPack: boolean) => {
     if (busy) return;
     setBusy(true);
-    markAnswered(OFFERS.intelligenceDownsell);
-    setIntelligencePath("downsell");
-    void buy(withPromptPack ? "intelligence_aiprompt_downsell" : "intelligence_downsell");
+    updatePurchase({ track: "downsell" });
+    goToPaymentLink(withPromptPack ? "intelligence_aiprompt_downsell" : "intelligence_downsell");
   };
 
   // Refusing here closes the Intelligence offer for good: straight to delivery.
   const decline = () => {
-    markAnswered(OFFERS.intelligenceDownsell);
-    void nextStepForSession().then((step) =>
-      goTo(step.kind === "go" ? step.path : RETURN_PATH),
-    );
+    goTo(deliveryPath());
   };
+
 
 
   return (

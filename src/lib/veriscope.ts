@@ -101,13 +101,13 @@ export function formatPrice(value: number) {
 export const ORDER_BUMP = {
   id: "checklist",
   eyebrow: "COMPLETE YOUR TRADING WORKFLOW",
-  name: "Veriscope Trade Checklist",
+  name: "Veriscope Trader Checklist",
   format: "Excel editável + PDF",
   price: 17,
   currency: CURRENCY,
   description:
     "Um checklist prático para organizar sua análise antes de uma operação. Use a versão Excel para registrar e acompanhar cada verificação ou a versão PDF para uma utilização rápida e direta.",
-  cta: "＋ Adicionar o Veriscope Trade Checklist por $17",
+  cta: "＋ Adicionar o Veriscope Trader Checklist por $17",
 } as const;
 
 /* ------------------------------------------------------------------ *
