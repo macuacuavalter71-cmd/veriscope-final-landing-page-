@@ -10,23 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as CartRouteImport } from './routes/cart'
 import { Route as CommunityRouteImport } from './routes/community'
-import { Route as DeliveryRouteImport } from './routes/delivery'
-import { Route as PaymentRouteImport } from './routes/payment'
 import { Route as DownsellIntelligenceRouteImport } from './routes/downsell.intelligence'
-import { Route as DownsellTradePilotRouteImport } from './routes/downsell.trade-pilot'
 import { Route as UpsellIntelligenceRouteImport } from './routes/upsell.intelligence'
-import { Route as UpsellTradePilotRouteImport } from './routes/upsell.trade-pilot'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CartRoute = CartRouteImport.update({
-  id: '/cart',
-  path: '/cart',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CommunityRoute = CommunityRouteImport.update({
@@ -34,24 +24,9 @@ const CommunityRoute = CommunityRouteImport.update({
   path: '/community',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DeliveryRoute = DeliveryRouteImport.update({
-  id: '/delivery',
-  path: '/delivery',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PaymentRoute = PaymentRouteImport.update({
-  id: '/payment',
-  path: '/payment',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DownsellIntelligenceRoute = DownsellIntelligenceRouteImport.update({
   id: '/downsell/intelligence',
   path: '/downsell/intelligence',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DownsellTradePilotRoute = DownsellTradePilotRouteImport.update({
-  id: '/downsell/trade-pilot',
-  path: '/downsell/trade-pilot',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UpsellIntelligenceRoute = UpsellIntelligenceRouteImport.update({
@@ -59,92 +34,45 @@ const UpsellIntelligenceRoute = UpsellIntelligenceRouteImport.update({
   path: '/upsell/intelligence',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UpsellTradePilotRoute = UpsellTradePilotRouteImport.update({
-  id: '/upsell/trade-pilot',
-  path: '/upsell/trade-pilot',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/cart': typeof CartRoute
   '/community': typeof CommunityRoute
-  '/delivery': typeof DeliveryRoute
-  '/payment': typeof PaymentRoute
   '/downsell/intelligence': typeof DownsellIntelligenceRoute
-  '/downsell/trade-pilot': typeof DownsellTradePilotRoute
   '/upsell/intelligence': typeof UpsellIntelligenceRoute
-  '/upsell/trade-pilot': typeof UpsellTradePilotRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/cart': typeof CartRoute
   '/community': typeof CommunityRoute
-  '/delivery': typeof DeliveryRoute
-  '/payment': typeof PaymentRoute
   '/downsell/intelligence': typeof DownsellIntelligenceRoute
-  '/downsell/trade-pilot': typeof DownsellTradePilotRoute
   '/upsell/intelligence': typeof UpsellIntelligenceRoute
-  '/upsell/trade-pilot': typeof UpsellTradePilotRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/cart': typeof CartRoute
   '/community': typeof CommunityRoute
-  '/delivery': typeof DeliveryRoute
-  '/payment': typeof PaymentRoute
   '/downsell/intelligence': typeof DownsellIntelligenceRoute
-  '/downsell/trade-pilot': typeof DownsellTradePilotRoute
   '/upsell/intelligence': typeof UpsellIntelligenceRoute
-  '/upsell/trade-pilot': typeof UpsellTradePilotRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/cart'
-    | '/community'
-    | '/delivery'
-    | '/payment'
-    | '/downsell/intelligence'
-    | '/downsell/trade-pilot'
-    | '/upsell/intelligence'
-    | '/upsell/trade-pilot'
+    '/' | '/community' | '/downsell/intelligence' | '/upsell/intelligence'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/cart'
-    | '/community'
-    | '/delivery'
-    | '/payment'
-    | '/downsell/intelligence'
-    | '/downsell/trade-pilot'
-    | '/upsell/intelligence'
-    | '/upsell/trade-pilot'
+  to: '/' | '/community' | '/downsell/intelligence' | '/upsell/intelligence'
   id:
     | '__root__'
     | '/'
-    | '/cart'
     | '/community'
-    | '/delivery'
-    | '/payment'
     | '/downsell/intelligence'
-    | '/downsell/trade-pilot'
     | '/upsell/intelligence'
-    | '/upsell/trade-pilot'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CartRoute: typeof CartRoute
   CommunityRoute: typeof CommunityRoute
-  DeliveryRoute: typeof DeliveryRoute
-  PaymentRoute: typeof PaymentRoute
   DownsellIntelligenceRoute: typeof DownsellIntelligenceRoute
-  DownsellTradePilotRoute: typeof DownsellTradePilotRoute
   UpsellIntelligenceRoute: typeof UpsellIntelligenceRoute
-  UpsellTradePilotRoute: typeof UpsellTradePilotRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -156,32 +84,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cart': {
-      id: '/cart'
-      path: '/cart'
-      fullPath: '/cart'
-      preLoaderRoute: typeof CartRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/community': {
       id: '/community'
       path: '/community'
       fullPath: '/community'
       preLoaderRoute: typeof CommunityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/delivery': {
-      id: '/delivery'
-      path: '/delivery'
-      fullPath: '/delivery'
-      preLoaderRoute: typeof DeliveryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/payment': {
-      id: '/payment'
-      path: '/payment'
-      fullPath: '/payment'
-      preLoaderRoute: typeof PaymentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/downsell/intelligence': {
@@ -191,13 +98,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DownsellIntelligenceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/downsell/trade-pilot': {
-      id: '/downsell/trade-pilot'
-      path: '/downsell/trade-pilot'
-      fullPath: '/downsell/trade-pilot'
-      preLoaderRoute: typeof DownsellTradePilotRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/upsell/intelligence': {
       id: '/upsell/intelligence'
       path: '/upsell/intelligence'
@@ -205,26 +105,14 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UpsellIntelligenceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/upsell/trade-pilot': {
-      id: '/upsell/trade-pilot'
-      path: '/upsell/trade-pilot'
-      fullPath: '/upsell/trade-pilot'
-      preLoaderRoute: typeof UpsellTradePilotRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CartRoute: CartRoute,
   CommunityRoute: CommunityRoute,
-  DeliveryRoute: DeliveryRoute,
-  PaymentRoute: PaymentRoute,
   DownsellIntelligenceRoute: DownsellIntelligenceRoute,
-  DownsellTradePilotRoute: DownsellTradePilotRoute,
   UpsellIntelligenceRoute: UpsellIntelligenceRoute,
-  UpsellTradePilotRoute: UpsellTradePilotRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
