@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CartRouteImport } from './routes/cart'
 import { Route as CommunityRouteImport } from './routes/community'
 import { Route as A1zgm5qbf7kRouteImport } from './routes/a.1zgm5qbf7k'
 import { Route as A2hf9wsk7rmRouteImport } from './routes/a.2hf9wsk7rm'
@@ -27,6 +28,11 @@ import { Route as UpsellIntelligenceRouteImport } from './routes/upsell.intellig
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CartRoute = CartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CommunityRoute = CommunityRouteImport.update({
@@ -97,6 +103,7 @@ const UpsellIntelligenceRoute = UpsellIntelligenceRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/cart': typeof CartRoute
   '/community': typeof CommunityRoute
   '/a/1zgm5qbf7k': typeof A1zgm5qbf7kRoute
   '/a/2hf9wsk7rm': typeof A2hf9wsk7rmRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/cart': typeof CartRoute
   '/community': typeof CommunityRoute
   '/a/1zgm5qbf7k': typeof A1zgm5qbf7kRoute
   '/a/2hf9wsk7rm': typeof A2hf9wsk7rmRoute
@@ -130,6 +138,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/cart': typeof CartRoute
   '/community': typeof CommunityRoute
   '/a/1zgm5qbf7k': typeof A1zgm5qbf7kRoute
   '/a/2hf9wsk7rm': typeof A2hf9wsk7rmRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/cart'
     | '/community'
     | '/a/1zgm5qbf7k'
     | '/a/2hf9wsk7rm'
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/cart'
     | '/community'
     | '/a/1zgm5qbf7k'
     | '/a/2hf9wsk7rm'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/cart'
     | '/community'
     | '/a/1zgm5qbf7k'
     | '/a/2hf9wsk7rm'
@@ -197,6 +209,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CartRoute: typeof CartRoute
   CommunityRoute: typeof CommunityRoute
   A1zgm5qbf7kRoute: typeof A1zgm5qbf7kRoute
   A2hf9wsk7rmRoute: typeof A2hf9wsk7rmRoute
@@ -219,6 +232,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cart': {
+      id: '/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof CartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/community': {
@@ -317,6 +337,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CartRoute: CartRoute,
   CommunityRoute: CommunityRoute,
   A1zgm5qbf7kRoute: A1zgm5qbf7kRoute,
   A2hf9wsk7rmRoute: A2hf9wsk7rmRoute,

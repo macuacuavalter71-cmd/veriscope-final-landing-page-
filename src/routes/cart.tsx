@@ -171,7 +171,7 @@ function CartPage() {
         <Section>
           <button
             type="button"
-            onClick={() => goToPaymentGateway(order, bump)}
+            onClick={() => void goToPaymentGateway(order, bump)}
             className="inline-flex min-h-12 w-full items-center justify-center rounded-md bg-primary px-5 py-3 text-xs font-medium tracking-[0.14em] text-primary-foreground uppercase transition-colors hover:bg-gold-light"
           >
             Continuar para pagamento
