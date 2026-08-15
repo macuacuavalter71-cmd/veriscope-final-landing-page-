@@ -23,6 +23,7 @@ import { Route as A9dks2rhq4vRouteImport } from './routes/a.9dks2rhq4v'
 import { Route as DownsellIntelligenceRouteImport } from './routes/downsell.intelligence'
 import { Route as PagamentoRetornoRouteImport } from './routes/pagamento.retorno'
 import { Route as UpsellIntelligenceRouteImport } from './routes/upsell.intelligence'
+import { Route as UpsellPromptPackRouteImport } from './routes/upsell.prompt-pack'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -94,6 +95,11 @@ const UpsellIntelligenceRoute = UpsellIntelligenceRouteImport.update({
   path: '/upsell/intelligence',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UpsellPromptPackRoute = UpsellPromptPackRouteImport.update({
+  id: '/upsell/prompt-pack',
+  path: '/upsell/prompt-pack',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/downsell/intelligence': typeof DownsellIntelligenceRoute
   '/pagamento/retorno': typeof PagamentoRetornoRoute
   '/upsell/intelligence': typeof UpsellIntelligenceRoute
+  '/upsell/prompt-pack': typeof UpsellPromptPackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/downsell/intelligence': typeof DownsellIntelligenceRoute
   '/pagamento/retorno': typeof PagamentoRetornoRoute
   '/upsell/intelligence': typeof UpsellIntelligenceRoute
+  '/upsell/prompt-pack': typeof UpsellPromptPackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/downsell/intelligence': typeof DownsellIntelligenceRoute
   '/pagamento/retorno': typeof PagamentoRetornoRoute
   '/upsell/intelligence': typeof UpsellIntelligenceRoute
+  '/upsell/prompt-pack': typeof UpsellPromptPackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/downsell/intelligence'
     | '/pagamento/retorno'
     | '/upsell/intelligence'
+    | '/upsell/prompt-pack'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/downsell/intelligence'
     | '/pagamento/retorno'
     | '/upsell/intelligence'
+    | '/upsell/prompt-pack'
   id:
     | '__root__'
     | '/'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/downsell/intelligence'
     | '/pagamento/retorno'
     | '/upsell/intelligence'
+    | '/upsell/prompt-pack'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -210,6 +222,7 @@ export interface RootRouteChildren {
   DownsellIntelligenceRoute: typeof DownsellIntelligenceRoute
   PagamentoRetornoRoute: typeof PagamentoRetornoRoute
   UpsellIntelligenceRoute: typeof UpsellIntelligenceRoute
+  UpsellPromptPackRoute: typeof UpsellPromptPackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -312,6 +325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UpsellIntelligenceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/upsell/prompt-pack': {
+      id: '/upsell/prompt-pack'
+      path: '/upsell/prompt-pack'
+      fullPath: '/upsell/prompt-pack'
+      preLoaderRoute: typeof UpsellPromptPackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -330,6 +350,7 @@ const rootRouteChildren: RootRouteChildren = {
   DownsellIntelligenceRoute: DownsellIntelligenceRoute,
   PagamentoRetornoRoute: PagamentoRetornoRoute,
   UpsellIntelligenceRoute: UpsellIntelligenceRoute,
+  UpsellPromptPackRoute: UpsellPromptPackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
