@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AI_PROMPT_PACK, formatPrice } from "@/lib/veriscope";
 
 /** Primary (accept) action of a post-purchase offer. */
