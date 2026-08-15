@@ -29,17 +29,17 @@ function remainingFrom(target: number, now: number): Remaining {
   };
 }
 
-/** Live countdown to LAUNCH_END_DATE. Returns null until hydrated (no SSR mismatch). */
+/** Live countdown for this visit. Returns null until hydrated (no SSR mismatch). */
 export function useLaunchWindow() {
-  const target = new Date(LAUNCH_END_DATE).getTime();
   const [remaining, setRemaining] = useState<Remaining | null>(null);
 
   useEffect(() => {
+    const target = visitDeadline();
     const tick = () => setRemaining(remainingFrom(target, Date.now()));
     tick();
     const id = window.setInterval(tick, 1000);
     return () => window.clearInterval(id);
-  }, [target]);
+  }, []);
 
   return remaining;
 }
