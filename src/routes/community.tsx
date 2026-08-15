@@ -29,8 +29,6 @@ type ProductKey =
   | "prime"
   | "intelligence"
   | "edge"
-  | "trade_pilot"
-  | "alert_engine"
   | "session_matrix"
   | "ai_prompt_pack"
   | "ecosystem";
@@ -39,8 +37,6 @@ const PRODUCT_LABELS: Record<ProductKey, string> = {
   prime: "Prime",
   intelligence: "Intelligence",
   edge: "Edge",
-  trade_pilot: "Trade Pilot",
-  alert_engine: "Alert Engine",
   session_matrix: "Session Matrix",
   ai_prompt_pack: "AI Prompt Pack",
   ecosystem: "Ecossistema",
@@ -51,8 +47,6 @@ const FILTERS: ("all" | ProductKey)[] = [
   "prime",
   "intelligence",
   "edge",
-  "trade_pilot",
-  "alert_engine",
   "session_matrix",
   "ai_prompt_pack",
   "ecosystem",
