@@ -1,22 +1,20 @@
 /**
- * Cart / order summary model — same structure as before, now handing off to
- * Paymento instead of a placeholder gateway.
- * No card data is ever collected or stored here.
+ * Cart / order summary model.
+ *
+ * The cart only decides WHICH offer the customer is buying (product, with or
+ * without the Trader Checklist) and sends the browser to that offer's exact
+ * Paymento Payment Link. No database, no order records, no payment checks.
  */
 import { CURRENCY, ORDER_BUMP, PRODUCTS, type ProductId } from "./veriscope";
-import { OFFER_CATALOG, createPendingOrder } from "./orders";
-
-export type OrderStatus = "draft" | "pending" | "paid" | "failed" | "cancelled";
+import { PAYMENT_LINKS, goToPaymentLink, updatePurchase, type OfferKey } from "./offers";
 
 export type OrderDraft = {
   orderId: string;
-  email: string | null;
   productId: ProductId;
   productName: string;
   quantity: number;
   price: number;
   currency: typeof CURRENCY;
-  status: OrderStatus;
   timestamp: string;
 };
 
@@ -28,22 +26,15 @@ function orderId() {
   return `VS-${Date.now().toString(36).toUpperCase()}-${random!.toUpperCase()}`;
 }
 
-export function createOrderDraft(
-  productId: ProductId,
-  options: { email?: string | null; quantity?: number } = {},
-): OrderDraft {
+export function createOrderDraft(productId: ProductId): OrderDraft {
   const product = PRODUCTS[productId];
-  const quantity = options.quantity ?? 1;
-
   return {
     orderId: orderId(),
-    email: options.email ?? null,
     productId,
     productName: product.name,
-    quantity,
-    price: product.price * quantity,
+    quantity: 1,
+    price: product.price,
     currency: CURRENCY,
-    status: "draft",
     timestamp: new Date().toISOString(),
   };
 }
@@ -71,7 +62,7 @@ export function readOrderDraft(): OrderDraft | null {
 }
 
 /* ------------------------------------------------------------------ *
- * Order bump — Veriscope Trade Checklist (optional, never required).
+ * Order bump — Veriscope Trader Checklist (optional, never required).
  * ------------------------------------------------------------------ */
 
 export type OrderLine = { id: string; name: string; price: number; quantity: number };
@@ -79,12 +70,7 @@ export type OrderLine = { id: string; name: string; price: number; quantity: num
 /** Line items of an order: the main product plus the bump when selected. */
 export function orderLines(order: OrderDraft, bumpSelected: boolean): OrderLine[] {
   const lines: OrderLine[] = [
-    {
-      id: order.productId,
-      name: order.productName,
-      price: order.price,
-      quantity: order.quantity,
-    },
+    { id: order.productId, name: order.productName, price: order.price, quantity: order.quantity },
   ];
   if (bumpSelected) {
     lines.push({
@@ -101,24 +87,25 @@ export function orderTotal(order: OrderDraft, bumpSelected: boolean) {
   return orderLines(order, bumpSelected).reduce((sum, l) => sum + l.price * l.quantity, 0);
 }
 
-/**
- * Single hand-off point: writes the pending order in Supabase (session_id +
- * product_id + amount) and sends the customer to the Paymento payment link.
- */
-export async function goToPaymentGateway(order: OrderDraft, bumpSelected: boolean) {
-  persistOrderDraft({
-    ...order,
-    status: "pending",
-    // Bump selection is kept with the draft; Paymento has no separate link for it.
-    ...(bumpSelected ? { bump: true } : {}),
-  } as OrderDraft);
+/** Exact offer for the product ± Trader Checklist combination. */
+export function offerFor(productId: ProductId, bumpSelected: boolean): OfferKey {
+  const map: Record<ProductId, { plain: OfferKey; withChecklist: OfferKey }> = {
+    edge: { plain: "edge", withChecklist: "edge_checklist" },
+    prime: { plain: "prime", withChecklist: "prime_checklist" },
+    bundle: { plain: "bundle", withChecklist: "bundle_checklist" },
+  };
+  const entry = map[productId];
+  return bumpSelected ? entry.withChecklist : entry.plain;
+}
 
-  await createPendingOrder(order.productId);
-
-  const link = OFFER_CATALOG[order.productId].link;
-  if (!link) {
-    console.error(`[checkout] missing Paymento link for "${order.productId}"`);
+/** Single hand-off point: straight to the Payment Link of the chosen offer. */
+export function goToPaymentGateway(order: OrderDraft, bumpSelected: boolean) {
+  persistOrderDraft(order);
+  updatePurchase({ base: order.productId, checklist: bumpSelected });
+  const offer = offerFor(order.productId, bumpSelected);
+  if (!PAYMENT_LINKS[offer].link) {
+    console.error(`[checkout] missing Paymento link for "${offer}"`);
     return;
   }
-  window.location.href = link;
+  goToPaymentLink(offer);
 }

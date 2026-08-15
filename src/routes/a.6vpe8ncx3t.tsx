@@ -21,7 +21,6 @@ function Page() {
   return (
     <DeliveryPage
       title="Prime + Edge Bundle + Intelligence"
-      requiredProducts={["bundle", "intelligence"]}
       items={["prime", "edge", "intelligence"]}
     />
   );

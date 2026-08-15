@@ -21,7 +21,6 @@ function Page() {
   return (
     <DeliveryPage
       title="Veriscope Edge + Intelligence"
-      requiredProducts={["edge", "intelligence"]}
       items={["edge", "intelligence"]}
     />
   );
