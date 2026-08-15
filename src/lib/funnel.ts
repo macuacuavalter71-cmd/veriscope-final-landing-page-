@@ -71,6 +71,25 @@ export function hasAnswered(offerId: string) {
   return readAnswers().includes(offerId);
 }
 
+const PATH_KEY = "veriscope_intelligence_path";
+export type IntelligencePath = "upsell" | "downsell";
+
+/** Remembers whether Intelligence was bought at upsell or downsell price, so the
+ *  AI Prompt Pack page can use the matching combined Paymento link. */
+export function setIntelligencePath(path: IntelligencePath) {
+  try {
+    window.localStorage.setItem(PATH_KEY, path);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function getIntelligencePath(): IntelligencePath {
+  if (typeof window === "undefined") return "upsell";
+  return window.localStorage.getItem(PATH_KEY) === "downsell" ? "downsell" : "upsell";
+}
+
+
 /** Which of the three main products was paid (bundle wins over the others). */
 export function baseProduct(paid: Set<OrderProductId>): "edge" | "prime" | "bundle" | null {
   if (paid.has("bundle")) return "bundle";
