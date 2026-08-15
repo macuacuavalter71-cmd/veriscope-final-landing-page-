@@ -22,7 +22,6 @@ import { Route as A7cxq4dtn8bRouteImport } from './routes/a.7cxq4dtn8b'
 import { Route as A8mzr3xc9wdRouteImport } from './routes/a.8mzr3xc9wd'
 import { Route as A9dks2rhq4vRouteImport } from './routes/a.9dks2rhq4v'
 import { Route as DownsellIntelligenceRouteImport } from './routes/downsell.intelligence'
-import { Route as PagamentoRetornoRouteImport } from './routes/pagamento.retorno'
 import { Route as RStepRouteImport } from './routes/r.$step'
 import { Route as UpsellIntelligenceRouteImport } from './routes/upsell.intelligence'
 
@@ -91,11 +90,6 @@ const DownsellIntelligenceRoute = DownsellIntelligenceRouteImport.update({
   path: '/downsell/intelligence',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PagamentoRetornoRoute = PagamentoRetornoRouteImport.update({
-  id: '/pagamento/retorno',
-  path: '/pagamento/retorno',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RStepRoute = RStepRouteImport.update({
   id: '/r/$step',
   path: '/r/$step',
@@ -121,7 +115,6 @@ export interface FileRoutesByFullPath {
   '/a/8mzr3xc9wd': typeof A8mzr3xc9wdRoute
   '/a/9dks2rhq4v': typeof A9dks2rhq4vRoute
   '/downsell/intelligence': typeof DownsellIntelligenceRoute
-  '/pagamento/retorno': typeof PagamentoRetornoRoute
   '/r/$step': typeof RStepRoute
   '/upsell/intelligence': typeof UpsellIntelligenceRoute
 }
@@ -139,7 +132,6 @@ export interface FileRoutesByTo {
   '/a/8mzr3xc9wd': typeof A8mzr3xc9wdRoute
   '/a/9dks2rhq4v': typeof A9dks2rhq4vRoute
   '/downsell/intelligence': typeof DownsellIntelligenceRoute
-  '/pagamento/retorno': typeof PagamentoRetornoRoute
   '/r/$step': typeof RStepRoute
   '/upsell/intelligence': typeof UpsellIntelligenceRoute
 }
@@ -158,7 +150,6 @@ export interface FileRoutesById {
   '/a/8mzr3xc9wd': typeof A8mzr3xc9wdRoute
   '/a/9dks2rhq4v': typeof A9dks2rhq4vRoute
   '/downsell/intelligence': typeof DownsellIntelligenceRoute
-  '/pagamento/retorno': typeof PagamentoRetornoRoute
   '/r/$step': typeof RStepRoute
   '/upsell/intelligence': typeof UpsellIntelligenceRoute
 }
@@ -178,7 +169,6 @@ export interface FileRouteTypes {
     | '/a/8mzr3xc9wd'
     | '/a/9dks2rhq4v'
     | '/downsell/intelligence'
-    | '/pagamento/retorno'
     | '/r/$step'
     | '/upsell/intelligence'
   fileRoutesByTo: FileRoutesByTo
@@ -196,7 +186,6 @@ export interface FileRouteTypes {
     | '/a/8mzr3xc9wd'
     | '/a/9dks2rhq4v'
     | '/downsell/intelligence'
-    | '/pagamento/retorno'
     | '/r/$step'
     | '/upsell/intelligence'
   id:
@@ -214,7 +203,6 @@ export interface FileRouteTypes {
     | '/a/8mzr3xc9wd'
     | '/a/9dks2rhq4v'
     | '/downsell/intelligence'
-    | '/pagamento/retorno'
     | '/r/$step'
     | '/upsell/intelligence'
   fileRoutesById: FileRoutesById
@@ -233,7 +221,6 @@ export interface RootRouteChildren {
   A8mzr3xc9wdRoute: typeof A8mzr3xc9wdRoute
   A9dks2rhq4vRoute: typeof A9dks2rhq4vRoute
   DownsellIntelligenceRoute: typeof DownsellIntelligenceRoute
-  PagamentoRetornoRoute: typeof PagamentoRetornoRoute
   RStepRoute: typeof RStepRoute
   UpsellIntelligenceRoute: typeof UpsellIntelligenceRoute
 }
@@ -331,13 +318,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DownsellIntelligenceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/pagamento/retorno': {
-      id: '/pagamento/retorno'
-      path: '/pagamento/retorno'
-      fullPath: '/pagamento/retorno'
-      preLoaderRoute: typeof PagamentoRetornoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/r/$step': {
       id: '/r/$step'
       path: '/r/$step'
@@ -369,7 +349,6 @@ const rootRouteChildren: RootRouteChildren = {
   A8mzr3xc9wdRoute: A8mzr3xc9wdRoute,
   A9dks2rhq4vRoute: A9dks2rhq4vRoute,
   DownsellIntelligenceRoute: DownsellIntelligenceRoute,
-  PagamentoRetornoRoute: PagamentoRetornoRoute,
   RStepRoute: RStepRoute,
   UpsellIntelligenceRoute: UpsellIntelligenceRoute,
 }
