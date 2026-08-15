@@ -49,37 +49,32 @@ const QUESTIONS = [
 
 function UpsellIntelligence() {
   const [purchasedName, setPurchasedName] = useState(PRODUCTS.prime.name);
-  const [promptPack, setPromptPack] = useState(false);
+  const [busy, setBusy] = useState(false);
 
+  // The name shown is the product the database confirms as paid.
   useEffect(() => {
-    initFunnelState();
-    const order = readOrderDraft();
-    if (order) setPurchasedName(order.productName);
+    let cancelled = false;
+    void fetchPaidProducts(getSessionId()).then((paid) => {
+      const base = baseProduct(paid);
+      if (!cancelled && base) setPurchasedName(PRODUCTS[base].name);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const accept = () => {
-    acceptOffer(OFFERS.upsell1, [
-      { id: "intelligence", name: INTELLIGENCE.name, price: INTELLIGENCE.upsellPrice },
-    ]);
-    setPromptPack(true);
+    if (busy) return;
+    setBusy(true);
+    markAnswered(OFFERS.intelligenceUpsell);
+    void buy("intelligence_upsell");
   };
 
   const decline = () => {
-    declineOffer(OFFERS.upsell1);
-    goTo(ROUTES.downsell1);
+    markAnswered(OFFERS.intelligenceUpsell);
+    goTo(FUNNEL_ROUTES.intelligenceDownsell);
   };
 
-  const acceptPack = () => {
-    acceptOffer(OFFERS.promptPack, [
-      { id: "prompt-pack", name: AI_PROMPT_PACK.name, price: AI_PROMPT_PACK.offerPrice },
-    ]);
-    goTo(ROUTES.upsell2);
-  };
-
-  const declinePack = () => {
-    declineOffer(OFFERS.promptPack);
-    goTo(ROUTES.upsell2);
-  };
 
   return (
     <div className="min-h-screen bg-background">
