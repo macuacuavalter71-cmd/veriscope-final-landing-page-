@@ -9,17 +9,18 @@ import {
   DeclineButton,
   FlowSteps,
   PriceLine,
-  PromptPackModal,
 } from "@/components/veriscope/FunnelUI";
 import {
-  AI_PROMPT_PACK,
   INTELLIGENCE,
   INTELLIGENCE_SCREENSHOTS,
   PRODUCTS,
   formatPrice,
 } from "@/lib/veriscope";
-import { readOrderDraft } from "@/lib/checkout";
-import { OFFERS, ROUTES, acceptOffer, declineOffer, goTo, initFunnelState } from "@/lib/funnel";
+import { buy } from "@/lib/orders";
+import { fetchPaidProducts } from "@/lib/orders";
+import { getSessionId } from "@/lib/session";
+import { FUNNEL_ROUTES, OFFERS, baseProduct, goTo, markAnswered } from "@/lib/funnel";
+
 
 const title = "Antes de liberar o seu acesso — Veriscope Intelligence";
 const description =
