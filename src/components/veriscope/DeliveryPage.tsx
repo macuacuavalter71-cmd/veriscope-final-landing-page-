@@ -107,7 +107,7 @@ export function DeliveryPage({
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header live />
       <main className="pb-24">
         <Section className="pt-10 pb-8 sm:pt-14">
           <h1 className="font-display text-xl tracking-tight uppercase sm:text-2xl">{title}</h1>
