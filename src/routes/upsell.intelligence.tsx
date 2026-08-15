@@ -214,7 +214,9 @@ function UpsellIntelligence() {
 
             <div className="mt-7">
               <AcceptButton onClick={accept}>
-                Adicionar Veriscope Intelligence — {formatPrice(INTELLIGENCE.upsellPrice)}
+                {busy
+                  ? "A abrir o pagamento…"
+                  : `Adicionar Veriscope Intelligence — ${formatPrice(INTELLIGENCE.upsellPrice)}`}
               </AcceptButton>
               <DeclineButton onClick={decline}>Não — continuar sem Intelligence</DeclineButton>
             </div>
@@ -222,7 +224,6 @@ function UpsellIntelligence() {
         </Section>
       </main>
 
-      <PromptPackModal open={promptPack} onAccept={acceptPack} onDecline={declinePack} />
     </div>
   );
 }
