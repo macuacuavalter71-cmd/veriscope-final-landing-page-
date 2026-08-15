@@ -19,7 +19,14 @@ import {
 import { buy } from "@/lib/orders";
 import { fetchPaidProducts } from "@/lib/orders";
 import { getSessionId } from "@/lib/session";
-import { FUNNEL_ROUTES, OFFERS, baseProduct, goTo, markAnswered } from "@/lib/funnel";
+import {
+  FUNNEL_ROUTES,
+  OFFERS,
+  baseProduct,
+  goTo,
+  markAnswered,
+  setIntelligencePath,
+} from "@/lib/funnel";
 
 
 const title = "Antes de liberar o seu acesso — Veriscope Intelligence";
