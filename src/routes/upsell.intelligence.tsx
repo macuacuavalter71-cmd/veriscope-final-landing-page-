@@ -17,17 +17,14 @@ import {
   PRODUCTS,
   formatPrice,
 } from "@/lib/veriscope";
-import { buy } from "@/lib/orders";
-import { fetchPaidProducts } from "@/lib/orders";
-import { getSessionId } from "@/lib/session";
 import {
   FUNNEL_ROUTES,
-  OFFERS,
-  baseProduct,
+  goToPaymentLink,
   goTo,
-  markAnswered,
-  setIntelligencePath,
-} from "@/lib/funnel";
+  readPurchase,
+  updatePurchase,
+} from "@/lib/offers";
+import { PRODUCTS as ALL_PRODUCTS } from "@/lib/veriscope";
 
 
 const title = "Antes de liberar o seu acesso — Veriscope Intelligence";
@@ -60,16 +57,9 @@ function UpsellIntelligence() {
   const [busy, setBusy] = useState(false);
   const [promptPack, setPromptPack] = useState(false);
 
-  // The name shown is the product the database confirms as paid.
+  // The name shown comes from the offer the customer came through.
   useEffect(() => {
-    let cancelled = false;
-    void fetchPaidProducts(getSessionId()).then((paid) => {
-      const base = baseProduct(paid);
-      if (!cancelled && base) setPurchasedName(PRODUCTS[base].name);
-    });
-    return () => {
-      cancelled = true;
-    };
+    setPurchasedName(ALL_PRODUCTS[readPurchase().base].name);
   }, []);
 
   // Accepting opens the AI Prompt Pack modal; the hand-off happens on confirm.
@@ -81,14 +71,12 @@ function UpsellIntelligence() {
   const confirm = (withPromptPack: boolean) => {
     if (busy) return;
     setBusy(true);
-    markAnswered(OFFERS.intelligenceUpsell);
-    setIntelligencePath("upsell");
-    void buy(withPromptPack ? "intelligence_aiprompt_upsell" : "intelligence_upsell");
+    updatePurchase({ track: "upsell" });
+    goToPaymentLink(withPromptPack ? "intelligence_aiprompt_upsell" : "intelligence_upsell");
   };
 
 
   const decline = () => {
-    markAnswered(OFFERS.intelligenceUpsell);
     goTo(FUNNEL_ROUTES.intelligenceDownsell);
   };
 
