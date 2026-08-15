@@ -67,8 +67,10 @@ function UpsellIntelligence() {
     if (busy) return;
     setBusy(true);
     markAnswered(OFFERS.intelligenceUpsell);
+    setIntelligencePath("upsell");
     void buy("intelligence_upsell");
   };
+
 
   const decline = () => {
     markAnswered(OFFERS.intelligenceUpsell);
