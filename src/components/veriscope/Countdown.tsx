@@ -1,5 +1,20 @@
 import { useEffect, useState } from "react";
-import { LAUNCH_END_DATE } from "@/lib/veriscope";
+import { LAUNCH_DURATION_MS } from "@/lib/veriscope";
+
+const DEADLINE_KEY = "veriscope_launch_deadline";
+
+/** Deadline for this visit: kept in sessionStorage so a refresh does not reset it. */
+function visitDeadline(): number {
+  const fresh = Date.now() + LAUNCH_DURATION_MS;
+  try {
+    const stored = Number(window.sessionStorage.getItem(DEADLINE_KEY));
+    if (Number.isFinite(stored) && stored > Date.now()) return stored;
+    window.sessionStorage.setItem(DEADLINE_KEY, String(fresh));
+  } catch {
+    /* storage unavailable — countdown simply restarts */
+  }
+  return fresh;
+}
 
 type Remaining = { days: number; hours: number; minutes: number; seconds: number; over: boolean };
 
