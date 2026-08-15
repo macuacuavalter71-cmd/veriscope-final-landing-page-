@@ -9,6 +9,7 @@ import {
   DeclineButton,
   FlowSteps,
   PriceLine,
+  PromptPackModal,
 } from "@/components/veriscope/FunnelUI";
 import {
   INTELLIGENCE,
@@ -57,6 +58,7 @@ const QUESTIONS = [
 function UpsellIntelligence() {
   const [purchasedName, setPurchasedName] = useState(PRODUCTS.prime.name);
   const [busy, setBusy] = useState(false);
+  const [promptPack, setPromptPack] = useState(false);
 
   // The name shown is the product the database confirms as paid.
   useEffect(() => {
@@ -70,12 +72,18 @@ function UpsellIntelligence() {
     };
   }, []);
 
+  // Accepting opens the AI Prompt Pack modal; the hand-off happens on confirm.
   const accept = () => {
+    if (busy) return;
+    setPromptPack(true);
+  };
+
+  const confirm = (withPromptPack: boolean) => {
     if (busy) return;
     setBusy(true);
     markAnswered(OFFERS.intelligenceUpsell);
     setIntelligencePath("upsell");
-    void buy("intelligence_upsell");
+    void buy(withPromptPack ? "intelligence_aiprompt_upsell" : "intelligence_upsell");
   };
 
 
@@ -223,9 +231,7 @@ function UpsellIntelligence() {
 
             <div className="mt-7">
               <AcceptButton onClick={accept}>
-                {busy
-                  ? "A abrir o pagamento…"
-                  : `Adicionar Veriscope Intelligence — ${formatPrice(INTELLIGENCE.upsellPrice)}`}
+                {`Adicionar Veriscope Intelligence — ${formatPrice(INTELLIGENCE.upsellPrice)}`}
               </AcceptButton>
               <DeclineButton onClick={decline}>Não — continuar sem Intelligence</DeclineButton>
             </div>
@@ -233,6 +239,7 @@ function UpsellIntelligence() {
         </Section>
       </main>
 
+      <PromptPackModal open={promptPack} busy={busy} onConfirm={confirm} />
     </div>
   );
 }
