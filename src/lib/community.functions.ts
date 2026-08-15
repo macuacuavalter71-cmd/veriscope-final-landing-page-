@@ -10,8 +10,6 @@ const PRODUCTS = [
   "prime",
   "intelligence",
   "edge",
-  "trade_pilot",
-  "alert_engine",
   "session_matrix",
   "ai_prompt_pack",
   "ecosystem",

@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { DiamondMark, Section } from "./Section";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { toggleLaunchLike } from "@/lib/community.functions";
 import { compactCount, freshAges } from "@/lib/format";
 

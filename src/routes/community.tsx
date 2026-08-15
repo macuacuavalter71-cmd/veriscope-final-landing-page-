@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Header } from "@/components/veriscope/Header";
 import { Section } from "@/components/veriscope/Section";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { likeComment, postComment } from "@/lib/community.functions";
 import { compactCount, timeAgo } from "@/lib/format";
 
