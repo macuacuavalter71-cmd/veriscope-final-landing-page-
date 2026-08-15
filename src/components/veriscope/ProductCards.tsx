@@ -6,15 +6,14 @@ import {
   formatPrice,
   type ProductId,
 } from "@/lib/veriscope";
-import { createOrderDraft, persistOrderDraft } from "@/lib/checkout";
+import { buy } from "@/lib/orders";
 import { useReveal } from "@/hooks/use-reveal";
 
-/** Starts the order flow. The gateway itself is wired in a later step. */
+/** Writes the pending order (session_id + product) and hands off to Paymento. */
 export function startCheckout(productId: ProductId) {
-  const order = createOrderDraft(productId);
-  persistOrderDraft(order);
-  window.location.href = `/cart?product=${productId}&order=${order.orderId}`;
+  void buy(productId as "edge" | "prime" | "bundle");
 }
+
 
 function BuyButton({
   productId,
