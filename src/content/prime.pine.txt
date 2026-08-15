@@ -1,0 +1,1075 @@
+//@version=6
+// =============================================================================
+// VERISCOPE PRIME — COMPLETE
+// Structure Engine Pro + Liquidity Engine Pro + Order Blocks Pro + FVG Pro
+// + Synced MTF + Dashboard Pro + Consolidated Alerts
+// =============================================================================
+// ORIGINAL implementation, written from scratch, based on public concepts of
+// Institutional Price Action (Smart Money Concepts / ICT). No code,
+// name, brand, or visual identity from third parties was copied.
+// =============================================================================
+
+indicator(title = "Veriscope Prime — Structure, Liquidity, Order Blocks, FVG & MTF", shorttitle = "Veriscope Prime", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+
+// =============================================================================
+// 1. DATA TYPES
+// =============================================================================
+
+type StructureState
+    float  pivotHighPrice   = na
+    int    pivotHighBar     = na
+    float  pivotLowPrice    = na
+    int    pivotLowBar      = na
+    bool   highBroken       = true
+    bool   lowBroken        = true
+    int    bias             = 0
+    bool   bullishBOS       = false
+    bool   bullishCHoCH     = false
+    bool   bearishBOS       = false
+    bool   bearishCHoCH     = false
+    bool   newEQH           = false
+    bool   newEQL           = false
+    float  eqHighPrice1     = na
+    int    eqHighBar1       = na
+    float  eqLowPrice1      = na
+    int    eqLowBar1        = na
+    string highStrength     = "—"
+    string lowStrength      = "—"
+    bool   highProtected    = false
+    bool   lowProtected     = false
+
+type VoidZone
+    box   zone
+    float top
+    float bottom
+    bool  bullish
+
+type OrderBlock
+    box    zone
+    line   ceLine
+    label  tag
+    float  top
+    float  bottom
+    bool   bullish
+    string quality
+    string state
+    int    obBar
+
+type FVG
+    box    zone
+    line   ceLine
+    float  top
+    float  bottom
+    bool   bullish
+    string state
+    bool   isBPR
+
+type MTFState
+    int    htfBias           = 0
+    float  htfLastHighPrice  = na
+    float  htfLastLowPrice   = na
+
+// =============================================================================
+// 2. USER SETTINGS
+// =============================================================================
+
+GRP_GENERAL = "General"
+themeInput        = input.string("Colored", "Color Theme", options = ["Colored", "Monochrome"], group = GRP_GENERAL)
+bullColorInput    = input.color(#0E9F6E, "Bullish Color", group = GRP_GENERAL)
+bearColorInput    = input.color(#E5484D, "Bearish Color", group = GRP_GENERAL)
+
+GRP_STRUCTURE = "Market Structure"
+swingLenInput               = input.int(50, "Period — Main Structure", minval = 2, group = GRP_STRUCTURE)
+secondaryLenInput           = input.int(15, "Period — Secondary Structure", minval = 2, group = GRP_STRUCTURE)
+internalLenInput            = input.int(5, "Period — Internal Structure (Micro)", minval = 2, group = GRP_STRUCTURE)
+showSwingStructureInput     = input.bool(true, "Show Main Structure", group = GRP_STRUCTURE)
+showSecondaryStructureInput = input.bool(true, "Show Secondary Structure", group = GRP_STRUCTURE)
+showInternalStructureInput  = input.bool(true, "Show Internal Structure (Micro)", group = GRP_STRUCTURE)
+showSwingPointsInput        = input.bool(false, "Show HH / HL / LH / LL Labels (Main)", group = GRP_STRUCTURE)
+atrLenInput                 = input.int(200, "ATR Period (volatility reference)", minval = 1, group = GRP_STRUCTURE)
+
+GRP_CONFIRM = "Breakout Confirmation"
+confirmModeInput    = input.string("Close", "Confirmation Mode", options = ["Close", "Wick", "Candle Percentage", "ATR"], group = GRP_CONFIRM)
+candleBodyPctInput  = input.float(50.0, "Minimum Candle Percentage (%)", minval = 1.0, maxval = 100.0, step = 1.0, group = GRP_CONFIRM)
+atrDistMultInput    = input.float(0.25, "Distance — ATR Mode (x ATR)", minval = 0.0, step = 0.05, group = GRP_CONFIRM)
+extraMinDistInput   = input.float(0.0, "Additional Minimum Distance Filter (x ATR)", minval = 0.0, step = 0.05, group = GRP_CONFIRM)
+
+GRP_QUALITY = "Swing Quality"
+strengthAtrMultInput = input.float(1.5, "Swing Strength Threshold (x ATR)", minval = 0.1, step = 0.1, group = GRP_QUALITY)
+
+GRP_COMPRESSION = "Consolidation / Compression"
+compressionLenInput                = input.int(20, "Analysis Period", minval = 5, group = GRP_COMPRESSION)
+compressionAtrMultInput            = input.float(1.0, "Compression Threshold (x ATR)", minval = 0.1, step = 0.1, group = GRP_COMPRESSION)
+hideInternalDuringCompressionInput = input.bool(true, "Hide Micro BOS/CHoCH During Consolidation", group = GRP_COMPRESSION)
+
+GRP_LIQ = "Liquidity Engine"
+showEQHLInput         = input.bool(true, "Equal Highs / Equal Lows (Liquidity Pool)", group = GRP_LIQ)
+eqTolInput            = input.float(0.1, "Equal High/Low Tolerance (x ATR)", minval = 0.01, step = 0.01, group = GRP_LIQ)
+showLiqLevelsInput    = input.bool(true, "Buy Side / Sell Side Liquidity (active levels)", group = GRP_LIQ)
+showInternalLiqInput  = input.bool(false, "Include Internal Liquidity (micro levels)", group = GRP_LIQ)
+showVoidInput         = input.bool(true, "Liquidity Void (impulse candles)", group = GRP_LIQ)
+voidAtrMultInput      = input.float(2.0, "Void Threshold (x ATR)", minval = 0.5, step = 0.1, group = GRP_LIQ)
+voidMaxCountInput     = input.int(10, "Maximum Active Voids", minval = 1, maxval = 30, group = GRP_LIQ)
+showSweepsInput       = input.bool(true, "Sweeps / Liquidity Grabs / Stop Hunts", group = GRP_LIQ)
+stopHuntAtrMultInput  = input.float(1.5, "Stop Hunt Threshold (x candle ATR)", minval = 0.5, step = 0.1, group = GRP_LIQ)
+
+GRP_PREV = "Previous Highs/Lows"
+showPDHLInput = input.bool(true, "Previous Day (PDH/PDL)", group = GRP_PREV)
+showPWHLInput = input.bool(false, "Previous Week (PWH/PWL)", group = GRP_PREV)
+showPMHLInput = input.bool(false, "Previous Month (PMH/PML)", group = GRP_PREV)
+showPYHLInput = input.bool(false, "Previous Year (PYH/PYL)", group = GRP_PREV)
+
+GRP_SESSIONS = "Sessions (Kill Zones)"
+showSessionsInput      = input.bool(true, "Highlight Sessions on Chart", group = GRP_SESSIONS)
+asiaSessionInput        = input.session("0000-0800", "Asian Session (UTC)", group = GRP_SESSIONS)
+londonSessionInput      = input.session("0700-1000", "London Kill Zone (UTC)", group = GRP_SESSIONS)
+nySessionInput          = input.session("1230-1500", "New York Kill Zone (UTC)", group = GRP_SESSIONS)
+showSessionRangeInput   = input.bool(true, "Draw Session High/Low", group = GRP_SESSIONS)
+showDailyOpenInput      = input.bool(true, "Daily Open", group = GRP_SESSIONS)
+showWeeklyOpenInput     = input.bool(false, "Weekly Open", group = GRP_SESSIONS)
+showMonthlyOpenInput    = input.bool(false, "Monthly Open", group = GRP_SESSIONS)
+
+GRP_OB = "Order Blocks Pro"
+showOBInput          = input.bool(true, "Show Order Blocks", group = GRP_OB)
+obLookbackInput      = input.int(20, "Lookback — Candles Back", minval = 3, maxval = 100, group = GRP_OB)
+obMaxCountInput      = input.int(5, "Maximum Active OBs (per side)", minval = 1, maxval = 20, group = GRP_OB)
+obMitigationInput    = input.string("Close", "Full Mitigation by", options = ["Close", "Wick"], group = GRP_OB)
+obShowCEInput        = input.bool(true, "Show OB Equilibrium Line (50%)", group = GRP_OB)
+obMinDisplaceInput   = input.float(0.5, "Minimum Displacement to Create OB (x ATR)", minval = 0.0, step = 0.1, group = GRP_OB)
+qualityStrongMultInput = input.float(3.0, "'Very Strong' Threshold (x ATR)", minval = 0.1, step = 0.1, group = GRP_OB)
+qualityGoodMultInput   = input.float(2.0, "'Strong' Threshold (x ATR)", minval = 0.1, step = 0.1, group = GRP_OB)
+qualityNormalMultInput = input.float(1.0, "'Normal' Threshold (x ATR)", minval = 0.1, step = 0.1, group = GRP_OB)
+showBreakerInput     = input.bool(true, "Show Breaker Blocks", group = GRP_OB)
+showReclaimedInput   = input.bool(true, "Show Reclaimed Order Blocks", group = GRP_OB)
+
+GRP_FVG = "Fair Value Gaps Pro"
+showFVGInput       = input.bool(true, "Show Fair Value Gaps", group = GRP_FVG)
+fvgMinSizeInput    = input.float(0.1, "Minimum Gap Size (x ATR)", minval = 0.0, step = 0.05, group = GRP_FVG)
+fvgMaxCountInput   = input.int(20, "Maximum Active FVGs", minval = 1, maxval = 50, group = GRP_FVG)
+fvgShowCEInput     = input.bool(true, "Show Consequent Encroachment (50%)", group = GRP_FVG)
+showInverseFVGInput = input.bool(true, "Show Inverse FVG (iFVG)", group = GRP_FVG)
+showBPRInput       = input.bool(true, "Show Balanced Price Range (BPR)", group = GRP_FVG)
+
+GRP_ZONES = "Premium / Discount / OTE"
+showZonesInput   = input.bool(true, "Show Premium / Discount / Equilibrium", group = GRP_ZONES)
+showOTEInput     = input.bool(true, "Show OTE Zone (Optimal Trade Entry)", group = GRP_ZONES)
+showGoldenInput  = input.bool(true, "Show Golden Zone", group = GRP_ZONES)
+oteStartInput    = input.float(0.618, "OTE — Start (fib)", minval = 0.0, maxval = 1.0, step = 0.001, group = GRP_ZONES)
+oteEndInput      = input.float(0.79, "OTE — End (fib)", minval = 0.0, maxval = 1.0, step = 0.001, group = GRP_ZONES)
+goldenStartInput = input.float(0.618, "Golden Zone — Start (fib)", minval = 0.0, maxval = 1.0, step = 0.001, group = GRP_ZONES)
+goldenEndInput   = input.float(0.65, "Golden Zone — End (fib)", minval = 0.0, maxval = 1.0, step = 0.001, group = GRP_ZONES)
+showFib50Input   = input.bool(true, "Show Fib 50%", group = GRP_ZONES)
+showFib70Input   = input.bool(true, "Show Fib 70%", group = GRP_ZONES)
+
+GRP_MTF = "Multi-Timeframe (MTF)"
+showMTFInput           = input.bool(true, "Enable Synced MTF", group = GRP_MTF)
+mtfTimeframeInput      = input.timeframe("D", "Higher Timeframe", group = GRP_MTF)
+showMTFStructureInput  = input.bool(true, "Show HTF Structure", group = GRP_MTF)
+
+GRP_DASH = "Dashboard"
+showDashboardInput = input.bool(true, "Show Dashboard", group = GRP_DASH)
+dashPosInput = input.string("Top Right", "Position", options = ["Top Right", "Top Left", "Bottom Right", "Bottom Left"], group = GRP_DASH)
+
+// =============================================================================
+// 3. UTILITY FUNCTIONS
+// =============================================================================
+
+f_themeColor(bool isBull, string theme, color bullCol, color bearCol) =>
+    monoBull = #9CA3AF
+    monoBear = #4B5563
+    theme == "Monochrome" ? (isBull ? monoBull : monoBear) : (isBull ? bullCol : bearCol)
+
+f_dashPosition(string p) =>
+    switch p
+        "Top Right"    => position.top_right
+        "Top Left"     => position.top_left
+        "Bottom Right" => position.bottom_right
+        "Bottom Left"  => position.bottom_left
+        => position.top_right
+
+f_biasText(int b) =>
+    b == 1 ? "Bullish" : b == -1 ? "Bearish" : "Neutral"
+
+f_biasColor(int b, color bull, color bear) =>
+    b == 1 ? bull : b == -1 ? bear : color.gray
+
+f_sweepLabel(bool stopHunt, string strength) =>
+    stopHunt ? "Stop Hunt" : (strength == "Strong" ? "Liq. Grab" : "Sweep")
+
+f_isBreakUp(float level, float atrVal) =>
+    candleRange = high - low
+    penetration = candleRange > 0 ? (close - level) / candleRange * 100.0 : 0.0
+    baseResult = switch confirmModeInput
+        "Close"              => close > level
+        "Wick"                => high > level
+        "Candle Percentage"   => close > level and penetration >= candleBodyPctInput
+        "ATR"                 => close > level + atrDistMultInput * atrVal
+        => close > level
+    checkSrc = confirmModeInput == "Wick" ? high : close
+    baseResult and checkSrc > level + extraMinDistInput * atrVal
+
+f_isBreakDown(float level, float atrVal) =>
+    candleRange = high - low
+    penetration = candleRange > 0 ? (level - close) / candleRange * 100.0 : 0.0
+    baseResult = switch confirmModeInput
+        "Close"              => close < level
+        "Wick"                => low < level
+        "Candle Percentage"   => close < level and penetration >= candleBodyPctInput
+        "ATR"                 => close < level - atrDistMultInput * atrVal
+        => close < level
+    checkSrc = confirmModeInput == "Wick" ? low : close
+    baseResult and checkSrc < level - extraMinDistInput * atrVal
+
+f_updateStructure(StructureState st, int len, float atrVal, float eqTol, float strengthMult, bool showPoints, color bullCol, color bearCol) =>
+    st.bullishBOS   := false
+    st.bullishCHoCH := false
+    st.bearishBOS   := false
+    st.bearishCHoCH := false
+    st.newEQH       := false
+    st.newEQL       := false
+    ph = ta.pivothigh(len, len)
+    pl = ta.pivotlow(len, len)
+    if not na(ph)
+        pBar = bar_index - len
+        impulseHigh = math.abs(close - ph)
+        newStrengthHigh = impulseHigh >= strengthMult * atrVal ? "Strong" : "Weak"
+        if not na(st.pivotHighPrice)
+            if math.abs(ph - st.pivotHighPrice) <= eqTol * atrVal
+                st.newEQH       := true
+                st.eqHighPrice1 := st.pivotHighPrice
+                st.eqHighBar1   := st.pivotHighBar
+            if showPoints
+                tagHigh = ph > st.pivotHighPrice ? "HH" : "LH"
+                label.new(pBar, ph, tagHigh, style = label.style_label_down, textcolor = bearCol, color = color.new(color.black, 100), size = size.tiny)
+        if not st.lowBroken
+            st.lowProtected := true
+        st.pivotHighPrice := ph
+        st.pivotHighBar   := pBar
+        st.highBroken     := false
+        st.highStrength   := newStrengthHigh
+        st.highProtected  := false
+    if not na(pl)
+        pBar2 = bar_index - len
+        impulseLow = math.abs(close - pl)
+        newStrengthLow = impulseLow >= strengthMult * atrVal ? "Strong" : "Weak"
+        if not na(st.pivotLowPrice)
+            if math.abs(pl - st.pivotLowPrice) <= eqTol * atrVal
+                st.newEQL      := true
+                st.eqLowPrice1 := st.pivotLowPrice
+                st.eqLowBar1   := st.pivotLowBar
+            if showPoints
+                tagLow = pl < st.pivotLowPrice ? "LL" : "HL"
+                label.new(pBar2, pl, tagLow, style = label.style_label_up, textcolor = bullCol, color = color.new(color.black, 100), size = size.tiny)
+        if not st.highBroken
+            st.highProtected := true
+        st.pivotLowPrice := pl
+        st.pivotLowBar   := pBar2
+        st.lowBroken     := false
+        st.lowStrength   := newStrengthLow
+        st.lowProtected  := false
+    if not st.highBroken and not na(st.pivotHighPrice) and f_isBreakUp(st.pivotHighPrice, atrVal)
+        isChochUp = st.bias < 0
+        st.highBroken := true
+        st.bias := 1
+        if isChochUp
+            st.bullishCHoCH := true
+        else
+            st.bullishBOS := true
+    if not st.lowBroken and not na(st.pivotLowPrice) and f_isBreakDown(st.pivotLowPrice, atrVal)
+        isChochDn = st.bias > 0
+        st.lowBroken := true
+        st.bias := -1
+        if isChochDn
+            st.bearishCHoCH := true
+        else
+            st.bearishBOS := true
+
+f_prevLevelLine(bool show, float level, color col, string tag) =>
+    var line lineId    = na
+    var label lbl      = na
+    var float lastLevel = na
+    if show and not na(level)
+        if na(lineId) or level != lastLevel
+            if not na(lineId)
+                line.delete(lineId)
+            if not na(lbl)
+                label.delete(lbl)
+            lineId := line.new(bar_index, level, bar_index, level, color = col, style = line.style_dashed, extend = extend.none)
+            lbl    := label.new(bar_index, level, tag, style = label.style_label_left, textcolor = col, color = color.new(color.black, 100), size = size.tiny)
+            lastLevel := level
+        else
+            line.set_xy2(lineId, bar_index, level)
+            label.set_x(lbl, bar_index)
+            label.set_y(lbl, level)
+    else if not show and not na(lineId)
+        line.delete(lineId)
+        label.delete(lbl)
+        lineId := na
+        lbl := na
+    lineId
+
+f_sessionRange(bool inSession, bool show, color col) =>
+    var float sessHigh = na
+    var float sessLow  = na
+    var box   sessBox  = na
+    var bool  wasIn    = false
+    if inSession
+        if not wasIn
+            sessHigh := high
+            sessLow  := low
+            if show
+                sessBox := box.new(bar_index, high, bar_index, low, border_color = color.new(col, 50), bgcolor = color.new(col, 92), extend = extend.none)
+        else
+            sessHigh := math.max(sessHigh, high)
+            sessLow  := math.min(sessLow, low)
+            if show and not na(sessBox)
+                box.set_top(sessBox, sessHigh)
+                box.set_bottom(sessBox, sessLow)
+                box.set_right(sessBox, bar_index)
+    else
+        if wasIn and not na(sessBox)
+            box.set_right(sessBox, bar_index)
+            sessBox := na
+    wasIn := inSession
+    [sessHigh, sessLow]
+
+f_createOB(bool bullish, int lookback) =>
+    float obTop  = na
+    float obBot  = na
+    int   obBar  = na
+    float displacement = na
+    if bullish
+        for i = 1 to lookback
+            if close[i] < open[i]
+                obTop := high[i]
+                obBot := low[i]
+                obBar := bar_index - i
+                displacement := close - close[i]
+                break
+    else
+        for i = 1 to lookback
+            if close[i] > open[i]
+                obTop := high[i]
+                obBot := low[i]
+                obBar := bar_index - i
+                displacement := close[i] - close
+                break
+    [obTop, obBot, obBar, displacement]
+
+f_obQuality(float displacement, float atrVal) =>
+    ratio = atrVal > 0 ? displacement / atrVal : 0.0
+    string q = switch
+        ratio >= qualityStrongMultInput => "Very Strong"
+        ratio >= qualityGoodMultInput   => "Strong"
+        ratio >= qualityNormalMultInput => "Normal"
+        => "Weak"
+    q
+
+f_obLabelText(OrderBlock ob) =>
+    base = ob.bullish ? "OB+" : "OB-"
+    switch ob.state
+        "Breaker"   => "Breaker"
+        "Reclaimed" => "Reclaimed"
+        => base + " (" + ob.quality + ")"
+
+f_priceZoneStatus(float p, float rangeTop, float rangeBot, float oteTop, float oteBot, float gTop, float gBot) =>
+    if p > rangeTop
+        "Above"
+    else if p < rangeBot
+        "Below"
+    else
+        eqLevel = (rangeTop + rangeBot) / 2.0
+        if p > eqLevel
+            if p >= oteTop and p <= oteBot
+                "OTE"
+            else if p >= gTop and p <= gBot
+                "Golden"
+            else
+                "Premium"
+        else
+            if p >= oteTop and p <= oteBot
+                "OTE"
+            else if p >= gTop and p <= gBot
+                "Golden"
+            else
+                "Discount"
+
+// =============================================================================
+// 4. GLOBAL VARIABLES
+// =============================================================================
+
+bullColor    = f_themeColor(true, themeInput, bullColorInput, bearColorInput)
+bearColor    = f_themeColor(false, themeInput, bullColorInput, bearColorInput)
+breakerColor = color.new(color.orange, 0)
+atrVal       = ta.atr(atrLenInput)
+
+rangeHighest    = ta.highest(high, compressionLenInput)
+rangeLowest     = ta.lowest(low, compressionLenInput)
+isConsolidating = (rangeHighest - rangeLowest) <= compressionAtrMultInput * atrVal
+
+var StructureState swingState     = StructureState.new()
+var StructureState secondaryState = StructureState.new()
+var StructureState internalState  = StructureState.new()
+var array<VoidZone> voids = array.new<VoidZone>()
+
+var array<OrderBlock> bullOBs = array.new<OrderBlock>()
+var array<OrderBlock> bearOBs = array.new<OrderBlock>()
+var array<FVG> fvgs = array.new<FVG>()
+
+var box  premiumBox      = na
+var box  discountBox     = na
+var box  oteBox          = na
+var box  goldenBox       = na
+var line fib50Line       = na
+var line fib70Line       = na
+
+// MTF variables
+var MTFState mtfState = MTFState.new()
+var line mtfStructLine = na
+
+// =============================================================================
+// 5. EXECUTION — MARKET STRUCTURE (3 LAYERS)
+// =============================================================================
+
+f_updateStructure(swingState, swingLenInput, atrVal, eqTolInput, strengthAtrMultInput, showSwingPointsInput, bullColor, bearColor)
+f_updateStructure(secondaryState, secondaryLenInput, atrVal, eqTolInput, strengthAtrMultInput, false, bullColor, bearColor)
+f_updateStructure(internalState, internalLenInput, atrVal, eqTolInput, strengthAtrMultInput, false, bullColor, bearColor)
+
+if showSwingStructureInput and (swingState.bullishBOS or swingState.bullishCHoCH)
+    line.new(swingState.pivotHighBar, swingState.pivotHighPrice, bar_index, swingState.pivotHighPrice, color = bullColor, style = line.style_solid, width = 2)
+    label.new(int(math.avg(swingState.pivotHighBar, bar_index)), swingState.pivotHighPrice, swingState.bullishCHoCH ? "CHoCH" : "BOS", style = label.style_label_down, textcolor = bullColor, color = color.new(color.black, 100), size = size.small)
+if showSwingStructureInput and (swingState.bearishBOS or swingState.bearishCHoCH)
+    line.new(swingState.pivotLowBar, swingState.pivotLowPrice, bar_index, swingState.pivotLowPrice, color = bearColor, style = line.style_solid, width = 2)
+    label.new(int(math.avg(swingState.pivotLowBar, bar_index)), swingState.pivotLowPrice, swingState.bearishCHoCH ? "CHoCH" : "BOS", style = label.style_label_up, textcolor = bearColor, color = color.new(color.black, 100), size = size.small)
+
+if showSecondaryStructureInput and (secondaryState.bullishBOS or secondaryState.bullishCHoCH)
+    line.new(secondaryState.pivotHighBar, secondaryState.pivotHighPrice, bar_index, secondaryState.pivotHighPrice, color = bullColor, style = line.style_dashed, width = 1)
+    label.new(int(math.avg(secondaryState.pivotHighBar, bar_index)), secondaryState.pivotHighPrice, secondaryState.bullishCHoCH ? "choch" : "bos", style = label.style_label_down, textcolor = bullColor, color = color.new(color.black, 100), size = size.tiny)
+if showSecondaryStructureInput and (secondaryState.bearishBOS or secondaryState.bearishCHoCH)
+    line.new(secondaryState.pivotLowBar, secondaryState.pivotLowPrice, bar_index, secondaryState.pivotLowPrice, color = bearColor, style = line.style_dashed, width = 1)
+    label.new(int(math.avg(secondaryState.pivotLowBar, bar_index)), secondaryState.pivotLowPrice, secondaryState.bearishCHoCH ? "choch" : "bos", style = label.style_label_up, textcolor = bearColor, color = color.new(color.black, 100), size = size.tiny)
+
+showInternalNow = showInternalStructureInput and not (hideInternalDuringCompressionInput and isConsolidating)
+if showInternalNow and (internalState.bullishBOS or internalState.bullishCHoCH)
+    line.new(internalState.pivotHighBar, internalState.pivotHighPrice, bar_index, internalState.pivotHighPrice, color = color.new(bullColor, 40), style = line.style_dotted, width = 1)
+    label.new(int(math.avg(internalState.pivotHighBar, bar_index)), internalState.pivotHighPrice, internalState.bullishCHoCH ? "mCHoCH" : "mBOS", style = label.style_label_down, textcolor = bullColor, color = color.new(color.black, 100), size = size.tiny)
+if showInternalNow and (internalState.bearishBOS or internalState.bearishCHoCH)
+    line.new(internalState.pivotLowBar, internalState.pivotLowPrice, bar_index, internalState.pivotLowPrice, color = color.new(bearColor, 40), style = line.style_dotted, width = 1)
+    label.new(int(math.avg(internalState.pivotLowBar, bar_index)), internalState.pivotLowPrice, internalState.bearishCHoCH ? "mCHoCH" : "mBOS", style = label.style_label_up, textcolor = bearColor, color = color.new(color.black, 100), size = size.tiny)
+
+// =============================================================================
+// 6. EQUAL HIGHS / EQUAL LOWS (LIQUIDITY POOL)
+// =============================================================================
+
+if showEQHLInput and swingState.newEQH
+    line.new(swingState.eqHighBar1, swingState.eqHighPrice1, bar_index, swingState.pivotHighPrice, color = color.new(bearColor, 30), style = line.style_dotted, width = 1)
+    label.new(bar_index, swingState.pivotHighPrice, "EQH", style = label.style_label_down, textcolor = bearColor, color = color.new(color.black, 100), size = size.tiny)
+if showEQHLInput and swingState.newEQL
+    line.new(swingState.eqLowBar1, swingState.eqLowPrice1, bar_index, swingState.pivotLowPrice, color = color.new(bullColor, 30), style = line.style_dotted, width = 1)
+    label.new(bar_index, swingState.pivotLowPrice, "EQL", style = label.style_label_up, textcolor = bullColor, color = color.new(color.black, 100), size = size.tiny)
+if showEQHLInput and showInternalLiqInput and internalState.newEQH
+    label.new(bar_index, internalState.pivotHighPrice, "eqh", style = label.style_label_down, textcolor = bearColor, color = color.new(color.black, 100), size = size.tiny)
+if showEQHLInput and showInternalLiqInput and internalState.newEQL
+    label.new(bar_index, internalState.pivotLowPrice, "eql", style = label.style_label_up, textcolor = bullColor, color = color.new(color.black, 100), size = size.tiny)
+
+// =============================================================================
+// 7. BUY SIDE / SELL SIDE LIQUIDITY (ACTIVE LEVELS — EXTERNAL AND INTERNAL)
+// =============================================================================
+
+var line bslLine         = na
+var line sslLine         = na
+var line bslInternalLine = na
+var line sslInternalLine = na
+
+if showLiqLevelsInput
+    if not swingState.highBroken and not na(swingState.pivotHighPrice)
+        if na(bslLine)
+            bslLine := line.new(swingState.pivotHighBar, swingState.pivotHighPrice, bar_index, swingState.pivotHighPrice, color = color.new(bearColor, 40), style = line.style_dashed)
+        else
+            line.set_xy1(bslLine, swingState.pivotHighBar, swingState.pivotHighPrice)
+            line.set_xy2(bslLine, bar_index, swingState.pivotHighPrice)
+    else if not na(bslLine)
+        line.delete(bslLine)
+        bslLine := na
+    if not swingState.lowBroken and not na(swingState.pivotLowPrice)
+        if na(sslLine)
+            sslLine := line.new(swingState.pivotLowBar, swingState.pivotLowPrice, bar_index, swingState.pivotLowPrice, color = color.new(bullColor, 40), style = line.style_dashed)
+        else
+            line.set_xy1(sslLine, swingState.pivotLowBar, swingState.pivotLowPrice)
+            line.set_xy2(sslLine, bar_index, swingState.pivotLowPrice)
+    else if not na(sslLine)
+        line.delete(sslLine)
+        sslLine := na
+
+if showLiqLevelsInput and showInternalLiqInput
+    if not internalState.highBroken and not na(internalState.pivotHighPrice)
+        if na(bslInternalLine)
+            bslInternalLine := line.new(internalState.pivotHighBar, internalState.pivotHighPrice, bar_index, internalState.pivotHighPrice, color = color.new(bearColor, 70), style = line.style_dotted)
+        else
+            line.set_xy1(bslInternalLine, internalState.pivotHighBar, internalState.pivotHighPrice)
+            line.set_xy2(bslInternalLine, bar_index, internalState.pivotHighPrice)
+    else if not na(bslInternalLine)
+        line.delete(bslInternalLine)
+        bslInternalLine := na
+    if not internalState.lowBroken and not na(internalState.pivotLowPrice)
+        if na(sslInternalLine)
+            sslInternalLine := line.new(internalState.pivotLowBar, internalState.pivotLowPrice, bar_index, internalState.pivotLowPrice, color = color.new(bullColor, 70), style = line.style_dotted)
+        else
+            line.set_xy1(sslInternalLine, internalState.pivotLowBar, internalState.pivotLowPrice)
+            line.set_xy2(sslInternalLine, bar_index, internalState.pivotLowPrice)
+    else if not na(sslInternalLine)
+        line.delete(sslInternalLine)
+        sslInternalLine := na
+
+// =============================================================================
+// 8. LIQUIDITY VOID
+// =============================================================================
+
+if showVoidInput
+    candleRangeVoid = high - low
+    if candleRangeVoid >= voidAtrMultInput * atrVal
+        isBullVoid = close > open
+        vTop = math.max(open, close)
+        vBot = math.min(open, close)
+        vBox = box.new(bar_index, vTop, bar_index, vBot, border_color = color.new(color.purple, 40), bgcolor = color.new(color.purple, 88), extend = extend.none)
+        array.unshift(voids, VoidZone.new(zone = vBox, top = vTop, bottom = vBot, bullish = isBullVoid))
+        if array.size(voids) > voidMaxCountInput
+            oldVoid = array.pop(voids)
+            box.delete(oldVoid.zone)
+
+if showVoidInput and array.size(voids) > 0
+    for i = array.size(voids) - 1 to 0
+        v = array.get(voids, i)
+        box.set_right(v.zone, bar_index)
+        filled = v.bullish ? close < v.bottom : close > v.top
+        if filled
+            box.delete(v.zone)
+            array.remove(voids, i)
+
+// =============================================================================
+// 9. SWEEPS / LIQUIDITY GRABS / STOP HUNTS
+// =============================================================================
+
+bullishSweepCond = not swingState.lowBroken and not na(swingState.pivotLowPrice) and low < swingState.pivotLowPrice and close > swingState.pivotLowPrice
+bearishSweepCond = not swingState.highBroken and not na(swingState.pivotHighPrice) and high > swingState.pivotHighPrice and close < swingState.pivotHighPrice
+sweepCandleRange = high - low
+isStopHuntBull = bullishSweepCond and sweepCandleRange >= stopHuntAtrMultInput * atrVal
+isStopHuntBear = bearishSweepCond and sweepCandleRange >= stopHuntAtrMultInput * atrVal
+
+if showSweepsInput and bearishSweepCond
+    lblBear = f_sweepLabel(isStopHuntBear, swingState.highStrength)
+    label.new(bar_index, high, lblBear, style = label.style_label_down, textcolor = bearColor, color = color.new(color.black, 100), size = size.small)
+if showSweepsInput and bullishSweepCond
+    lblBull = f_sweepLabel(isStopHuntBull, swingState.lowStrength)
+    label.new(bar_index, low, lblBull, style = label.style_label_up, textcolor = bullColor, color = color.new(color.black, 100), size = size.small)
+
+// =============================================================================
+// 10. PREVIOUS HIGHS/LOWS + OPENS (D/W/M/Y) — FIXED
+// =============================================================================
+// FIX: Removed forbidden nesting of request.security
+// Now using 4 separate calls, each returning a tuple of primitives
+
+[pdHigh, pdLow, dOpen] = request.security(syminfo.tickerid, "D", [high[1], low[1], open], lookahead = barmerge.lookahead_off)
+[pwHigh, pwLow, wOpen] = request.security(syminfo.tickerid, "W", [high[1], low[1], open], lookahead = barmerge.lookahead_off)
+[pmHigh, pmLow, mOpen] = request.security(syminfo.tickerid, "M", [high[1], low[1], open], lookahead = barmerge.lookahead_off)
+[pyHigh, pyLow]        = request.security(syminfo.tickerid, "12M", [high[1], low[1]], lookahead = barmerge.lookahead_off)
+
+f_prevLevelLine(showPDHLInput, pdHigh, bearColor, "PDH")
+f_prevLevelLine(showPDHLInput, pdLow, bullColor, "PDL")
+f_prevLevelLine(showPWHLInput, pwHigh, bearColor, "PWH")
+f_prevLevelLine(showPWHLInput, pwLow, bullColor, "PWL")
+f_prevLevelLine(showPMHLInput, pmHigh, bearColor, "PMH")
+f_prevLevelLine(showPMHLInput, pmLow, bullColor, "PML")
+f_prevLevelLine(showPYHLInput, pyHigh, bearColor, "PYH")
+f_prevLevelLine(showPYHLInput, pyLow, bullColor, "PYL")
+f_prevLevelLine(showDailyOpenInput, dOpen, color.gray, "D Open")
+f_prevLevelLine(showWeeklyOpenInput, wOpen, color.yellow, "W Open")
+f_prevLevelLine(showMonthlyOpenInput, mOpen, color.orange, "M Open")
+
+// =============================================================================
+// 11. SESSIONS / KILL ZONES
+// =============================================================================
+
+inAsia   = not na(time(timeframe.period, asiaSessionInput, "UTC"))
+inLondon = not na(time(timeframe.period, londonSessionInput, "UTC"))
+inNY     = not na(time(timeframe.period, nySessionInput, "UTC"))
+
+bgcolor(showSessionsInput and inAsia   ? color.new(#2962FF, 93) : na, title = "Asian Session")
+bgcolor(showSessionsInput and inLondon ? color.new(#FF6D00, 93) : na, title = "London Kill Zone")
+bgcolor(showSessionsInput and inNY     ? color.new(#AA00FF, 93) : na, title = "New York Kill Zone")
+
+[asiaHigh, asiaLow]     = f_sessionRange(inAsia, showSessionRangeInput, #2962FF)
+[londonHigh, londonLow] = f_sessionRange(inLondon, showSessionRangeInput, #FF6D00)
+[nyHigh, nyLow]         = f_sessionRange(inNY, showSessionRangeInput, #AA00FF)
+
+// =============================================================================
+// 12. ORDER BLOCKS PRO — CREATION
+// =============================================================================
+
+if showOBInput and (swingState.bullishBOS or swingState.bullishCHoCH)
+    [obT, obB, obBarL, disp] = f_createOB(true, obLookbackInput)
+    if not na(obT) and (obMinDisplaceInput == 0.0 or disp >= obMinDisplaceInput * atrVal)
+        quality = f_obQuality(disp, atrVal)
+        newBox = box.new(obBarL, obT, bar_index, obB, border_color = bullColor, bgcolor = color.new(bullColor, 85), extend = extend.none)
+        newCE  = obShowCEInput ? line.new(obBarL, math.avg(obT, obB), bar_index, math.avg(obT, obB), color = color.new(bullColor, 40), style = line.style_dotted) : na
+        newOB  = OrderBlock.new(zone = newBox, ceLine = newCE, top = obT, bottom = obB, bullish = true, quality = quality, state = "Active", obBar = obBarL)
+        newOB.tag := label.new(obBarL, obB, f_obLabelText(newOB), style = label.style_label_up, textcolor = bullColor, color = color.new(color.black, 100), size = size.tiny)
+        array.unshift(bullOBs, newOB)
+        if array.size(bullOBs) > obMaxCountInput
+            old = array.pop(bullOBs)
+            box.delete(old.zone)
+            line.delete(old.ceLine)
+            label.delete(old.tag)
+
+if showOBInput and (swingState.bearishBOS or swingState.bearishCHoCH)
+    [obT2, obB2, obBar2, disp2] = f_createOB(false, obLookbackInput)
+    if not na(obT2) and (obMinDisplaceInput == 0.0 or disp2 >= obMinDisplaceInput * atrVal)
+        quality2 = f_obQuality(disp2, atrVal)
+        newBox2 = box.new(obBar2, obT2, bar_index, obB2, border_color = bearColor, bgcolor = color.new(bearColor, 85), extend = extend.none)
+        newCE2  = obShowCEInput ? line.new(obBar2, math.avg(obT2, obB2), bar_index, math.avg(obT2, obB2), color = color.new(bearColor, 40), style = line.style_dotted) : na
+        newOB2  = OrderBlock.new(zone = newBox2, ceLine = newCE2, top = obT2, bottom = obB2, bullish = false, quality = quality2, state = "Active", obBar = obBar2)
+        newOB2.tag := label.new(obBar2, obT2, f_obLabelText(newOB2), style = label.style_label_down, textcolor = bearColor, color = color.new(color.black, 100), size = size.tiny)
+        array.unshift(bearOBs, newOB2)
+        if array.size(bearOBs) > obMaxCountInput
+            old2 = array.pop(bearOBs)
+            box.delete(old2.zone)
+            line.delete(old2.ceLine)
+            label.delete(old2.tag)
+
+// =============================================================================
+// 13. ORDER BLOCKS PRO — MITIGATION / INVALIDATION / BREAKER / RECLAIMED
+// =============================================================================
+
+if showOBInput and array.size(bullOBs) > 0
+    for i = array.size(bullOBs) - 1 to 0
+        ob = array.get(bullOBs, i)
+        box.set_right(ob.zone, bar_index)
+        if not na(ob.ceLine)
+            line.set_x2(ob.ceLine, bar_index)
+        fullBreak = obMitigationInput == "Close" ? close < ob.bottom : low < ob.bottom
+        touched   = low <= ob.top
+
+        if ob.state == "Active" and touched and not fullBreak
+            ob.state := "Mitigated"
+            box.set_bgcolor(ob.zone, color.new(bullColor, 70))
+            label.set_text(ob.tag, f_obLabelText(ob))
+        else if (ob.state == "Active" or ob.state == "Mitigated") and fullBreak
+            if showBreakerInput
+                ob.state := "Breaker"
+                ob.bullish := false
+                box.set_border_color(ob.zone, breakerColor)
+                box.set_bgcolor(ob.zone, color.new(breakerColor, 80))
+                label.set_text(ob.tag, f_obLabelText(ob))
+                label.set_textcolor(ob.tag, breakerColor)
+            else
+                box.delete(ob.zone)
+                line.delete(ob.ceLine)
+                label.delete(ob.tag)
+                array.remove(bullOBs, i)
+        else if ob.state == "Breaker" and showReclaimedInput and close > ob.top
+            ob.state := "Reclaimed"
+            ob.bullish := true
+            box.set_border_color(ob.zone, bullColor)
+            box.set_bgcolor(ob.zone, color.new(bullColor, 75))
+            label.set_text(ob.tag, f_obLabelText(ob))
+            label.set_textcolor(ob.tag, bullColor)
+        else if ob.state == "Reclaimed" and close < ob.bottom
+            box.delete(ob.zone)
+            line.delete(ob.ceLine)
+            label.delete(ob.tag)
+            array.remove(bullOBs, i)
+
+if showOBInput and array.size(bearOBs) > 0
+    for i = array.size(bearOBs) - 1 to 0
+        ob = array.get(bearOBs, i)
+        box.set_right(ob.zone, bar_index)
+        if not na(ob.ceLine)
+            line.set_x2(ob.ceLine, bar_index)
+        fullBreak = obMitigationInput == "Close" ? close > ob.top : high > ob.top
+        touched   = high >= ob.bottom
+
+        if ob.state == "Active" and touched and not fullBreak
+            ob.state := "Mitigated"
+            box.set_bgcolor(ob.zone, color.new(bearColor, 70))
+            label.set_text(ob.tag, f_obLabelText(ob))
+        else if (ob.state == "Active" or ob.state == "Mitigated") and fullBreak
+            if showBreakerInput
+                ob.state := "Breaker"
+                ob.bullish := true
+                box.set_border_color(ob.zone, breakerColor)
+                box.set_bgcolor(ob.zone, color.new(breakerColor, 80))
+                label.set_text(ob.tag, f_obLabelText(ob))
+                label.set_textcolor(ob.tag, breakerColor)
+            else
+                box.delete(ob.zone)
+                line.delete(ob.ceLine)
+                label.delete(ob.tag)
+                array.remove(bearOBs, i)
+        else if ob.state == "Breaker" and showReclaimedInput and close < ob.bottom
+            ob.state := "Reclaimed"
+            ob.bullish := false
+            box.set_border_color(ob.zone, bearColor)
+            box.set_bgcolor(ob.zone, color.new(bearColor, 75))
+            label.set_text(ob.tag, f_obLabelText(ob))
+            label.set_textcolor(ob.tag, bearColor)
+        else if ob.state == "Reclaimed" and close > ob.top
+            box.delete(ob.zone)
+            line.delete(ob.ceLine)
+            label.delete(ob.tag)
+            array.remove(bearOBs, i)
+
+// =============================================================================
+// 14. FAIR VALUE GAPS PRO — CREATION
+// =============================================================================
+
+bullFVGCond = low > high[2]
+bearFVGCond = high < low[2]
+
+if showFVGInput and bullFVGCond
+    fvgTop = low
+    fvgBot = high[2]
+    if (fvgTop - fvgBot) >= fvgMinSizeInput * atrVal
+        newFVGBox = box.new(bar_index - 2, fvgTop, bar_index, fvgBot, border_color = color.new(bullColor, 40), bgcolor = color.new(bullColor, 85), extend = extend.none)
+        newCE     = fvgShowCEInput ? line.new(bar_index - 2, math.avg(fvgTop, fvgBot), bar_index, math.avg(fvgTop, fvgBot), color = color.new(bullColor, 30), style = line.style_dotted) : na
+        array.unshift(fvgs, FVG.new(zone = newFVGBox, ceLine = newCE, top = fvgTop, bottom = fvgBot, bullish = true, state = "Active", isBPR = false))
+        if array.size(fvgs) > fvgMaxCountInput
+            old = array.pop(fvgs)
+            box.delete(old.zone)
+            line.delete(old.ceLine)
+
+if showFVGInput and bearFVGCond
+    fvgTop2 = low[2]
+    fvgBot2 = high
+    if (fvgTop2 - fvgBot2) >= fvgMinSizeInput * atrVal
+        newFVGBox2 = box.new(bar_index - 2, fvgTop2, bar_index, fvgBot2, border_color = color.new(bearColor, 40), bgcolor = color.new(bearColor, 85), extend = extend.none)
+        newCE2     = fvgShowCEInput ? line.new(bar_index - 2, math.avg(fvgTop2, fvgBot2), bar_index, math.avg(fvgTop2, fvgBot2), color = color.new(bearColor, 30), style = line.style_dotted) : na
+        array.unshift(fvgs, FVG.new(zone = newFVGBox2, ceLine = newCE2, top = fvgTop2, bottom = fvgBot2, bullish = false, state = "Active", isBPR = false))
+        if array.size(fvgs) > fvgMaxCountInput
+            old2 = array.pop(fvgs)
+            box.delete(old2.zone)
+            line.delete(old2.ceLine)
+
+// =============================================================================
+// 15. FAIR VALUE GAPS PRO — BPR (Balanced Price Range)
+// =============================================================================
+
+if showBPRInput and array.size(fvgs) >= 2
+    for i = 0 to array.size(fvgs) - 1
+        fA = array.get(fvgs, i)
+        if not fA.isBPR
+            if i < array.size(fvgs) - 1
+                for j = i + 1 to array.size(fvgs) - 1
+                    fB = array.get(fvgs, j)
+                    if not fB.isBPR and fA.bullish != fB.bullish
+                        overlapTop = math.min(fA.top, fB.top)
+                        overlapBot = math.max(fA.bottom, fB.bottom)
+                        if overlapTop > overlapBot
+                            fA.isBPR := true
+                            fB.isBPR := true
+                            box.new(math.max(fA.zone.get_left(), fB.zone.get_left()), overlapTop, bar_index, overlapBot, border_color = color.new(color.blue, 30), bgcolor = color.new(color.blue, 85), extend = extend.none)
+                            label.new(bar_index, overlapTop, "BPR", style = label.style_label_down, textcolor = color.blue, color = color.new(color.black, 100), size = size.tiny)
+                            break
+
+// =============================================================================
+// 16. FAIR VALUE GAPS PRO — MITIGATION / INVALIDATION / INVERSE FVG
+// =============================================================================
+
+if showFVGInput and array.size(fvgs) > 0
+    for i = array.size(fvgs) - 1 to 0
+        f = array.get(fvgs, i)
+        box.set_right(f.zone, bar_index)
+        if not na(f.ceLine)
+            line.set_x2(f.ceLine, bar_index)
+
+        if f.bullish
+            ceLevel = math.avg(f.top, f.bottom)
+            if f.state == "Active" and low <= ceLevel and low > f.bottom
+                f.state := "Partial"
+                box.set_bgcolor(f.zone, color.new(bullColor, 75))
+            else if (f.state == "Active" or f.state == "Partial") and low <= f.bottom and close > f.bottom
+                f.state := "Mitigated"
+                box.set_bgcolor(f.zone, color.new(bullColor, 90))
+            else if close < f.bottom
+                if showInverseFVGInput
+                    f.state := "Inverse"
+                    f.bullish := false
+                    box.set_border_color(f.zone, bearColor)
+                    box.set_bgcolor(f.zone, color.new(bearColor, 80))
+                else
+                    box.delete(f.zone)
+                    line.delete(f.ceLine)
+                    array.remove(fvgs, i)
+        else
+            ceLevel2 = math.avg(f.top, f.bottom)
+            if f.state == "Active" and high >= ceLevel2 and high < f.top
+                f.state := "Partial"
+                box.set_bgcolor(f.zone, color.new(bearColor, 75))
+            else if (f.state == "Active" or f.state == "Partial") and high >= f.top and close < f.top
+                f.state := "Mitigated"
+                box.set_bgcolor(f.zone, color.new(bearColor, 90))
+            else if close > f.top
+                if showInverseFVGInput
+                    f.state := "Inverse"
+                    f.bullish := true
+                    box.set_border_color(f.zone, bullColor)
+                    box.set_bgcolor(f.zone, color.new(bullColor, 80))
+                else
+                    box.delete(f.zone)
+                    line.delete(f.ceLine)
+                    array.remove(fvgs, i)
+
+// =============================================================================
+// 17. PREMIUM / DISCOUNT / EQUILIBRIUM / OTE / GOLDEN ZONE
+// =============================================================================
+
+rangeTop = swingState.pivotHighPrice
+rangeBot = swingState.pivotLowPrice
+
+if showZonesInput and not na(rangeTop) and not na(rangeBot) and rangeTop > rangeBot
+    eqLevel  = (rangeTop + rangeBot) / 2.0
+    zoneLeft = int(math.max(swingState.pivotHighBar, swingState.pivotLowBar))
+
+    if na(premiumBox)
+        premiumBox  := box.new(zoneLeft, rangeTop, bar_index, eqLevel, border_color = color.new(bearColor, 80), bgcolor = color.new(bearColor, 93), extend = extend.none)
+        discountBox := box.new(zoneLeft, eqLevel, bar_index, rangeBot, border_color = color.new(bullColor, 80), bgcolor = color.new(bullColor, 93), extend = extend.none)
+    else
+        box.set_left(premiumBox, zoneLeft)
+        box.set_right(premiumBox, bar_index)
+        box.set_top(premiumBox, rangeTop)
+        box.set_bottom(premiumBox, eqLevel)
+        box.set_left(discountBox, zoneLeft)
+        box.set_right(discountBox, bar_index)
+        box.set_top(discountBox, eqLevel)
+        box.set_bottom(discountBox, rangeBot)
+
+    if showFib50Input
+        if na(fib50Line)
+            fib50Line := line.new(zoneLeft, eqLevel, bar_index, eqLevel, color = color.new(color.gray, 30), style = line.style_dashed)
+        else
+            line.set_xy1(fib50Line, zoneLeft, eqLevel)
+            line.set_xy2(fib50Line, bar_index, eqLevel)
+
+    if showFib70Input
+        fib70Level = rangeTop - (rangeTop - rangeBot) * 0.70
+        if na(fib70Line)
+            fib70Line := line.new(zoneLeft, fib70Level, bar_index, fib70Level, color = color.new(color.gray, 50), style = line.style_dotted)
+        else
+            line.set_xy1(fib70Line, zoneLeft, fib70Level)
+            line.set_xy2(fib70Line, bar_index, fib70Level)
+
+    if showOTEInput
+        oteTop = rangeTop - (rangeTop - rangeBot) * oteStartInput
+        oteBot = rangeTop - (rangeTop - rangeBot) * oteEndInput
+        if na(oteBox)
+            oteBox := box.new(zoneLeft, oteTop, bar_index, oteBot, border_color = color.new(color.aqua, 50), bgcolor = color.new(color.aqua, 88), extend = extend.none)
+        else
+            box.set_left(oteBox, zoneLeft)
+            box.set_right(oteBox, bar_index)
+            box.set_top(oteBox, oteTop)
+            box.set_bottom(oteBox, oteBot)
+
+    if showGoldenInput
+        gTop = rangeTop - (rangeTop - rangeBot) * goldenStartInput
+        gBot = rangeTop - (rangeTop - rangeBot) * goldenEndInput
+        if na(goldenBox)
+            goldenBox := box.new(zoneLeft, gTop, bar_index, gBot, border_color = color.new(color.yellow, 50), bgcolor = color.new(color.yellow, 88), extend = extend.none)
+        else
+            box.set_left(goldenBox, zoneLeft)
+            box.set_right(goldenBox, bar_index)
+            box.set_top(goldenBox, gTop)
+            box.set_bottom(goldenBox, gBot)
+
+// =============================================================================
+// 21. SYNCED MTF (Multi-Timeframe) — FIXED
+// =============================================================================
+
+if showMTFInput
+    // FIX: Use only primitive types (float/int) via request.security
+    htfHighPrice = request.security(syminfo.tickerid, mtfTimeframeInput, high, lookahead = barmerge.lookahead_off)
+    htfLowPrice = request.security(syminfo.tickerid, mtfTimeframeInput, low, lookahead = barmerge.lookahead_off)
+    
+    // Calculate simple HTF bias (comparison with the last 20 HTF pivots)
+    htfPH = request.security(syminfo.tickerid, mtfTimeframeInput, ta.pivothigh(20, 20), lookahead = barmerge.lookahead_off)
+    htfPL = request.security(syminfo.tickerid, mtfTimeframeInput, ta.pivotlow(20, 20), lookahead = barmerge.lookahead_off)
+    
+    if not na(htfPH) and not na(htfPL)
+        if htfHighPrice > htfPH
+            mtfState.htfBias := 1
+        else if htfLowPrice < htfPL
+            mtfState.htfBias := -1
+        else
+            mtfState.htfBias := 0
+    
+    mtfState.htfLastHighPrice := htfHighPrice
+    mtfState.htfLastLowPrice := htfLowPrice
+
+    // Draw HTF structure (simple line)
+    if showMTFStructureInput and mtfState.htfBias != 0
+        htfStructColor = mtfState.htfBias == 1 ? bullColor : bearColor
+        if na(mtfStructLine)
+            mtfStructLine := line.new(bar_index - 50, close, bar_index, close, color = color.new(htfStructColor, 50), style = line.style_solid, width = 3)
+        else
+            line.set_color(mtfStructLine, color.new(htfStructColor, 50))
+
+// =============================================================================
+// 22. FULL DASHBOARD PRO
+// =============================================================================
+
+var table dash = table.new(f_dashPosition(dashPosInput), 2, 16, bgcolor = color.new(color.black, 15), border_color = color.new(color.gray, 50), border_width = 1, frame_color = color.new(color.gray, 50), frame_width = 1)
+
+if showDashboardInput and barstate.islast
+    sessionText  = inNY ? "New York" : inLondon ? "London" : inAsia ? "Asia" : "Outside"
+    highInfoText = swingState.highStrength + (swingState.highProtected ? " ✓" : "")
+    lowInfoText  = swingState.lowStrength + (swingState.lowProtected ? " ✓" : "")
+    
+    rangeT = swingState.pivotHighPrice
+    rangeB = swingState.pivotLowPrice
+    priceZone = not na(rangeT) and not na(rangeB) ? f_priceZoneStatus(close, rangeT, rangeB, 
+                    rangeT - (rangeT - rangeB) * oteStartInput, rangeT - (rangeT - rangeB) * oteEndInput,
+                    rangeT - (rangeT - rangeB) * goldenStartInput, rangeT - (rangeT - rangeB) * goldenEndInput) : "—"
+    
+    regimeText = isConsolidating ? "Consolidation" : "Trend"
+    regimeColor = isConsolidating ? color.orange : color.white
+
+    // FIX: Use correct and flexible indices based on MTF
+    row = 0
+    table.cell(dash, 0, row, "VERISCOPE PRIME v3.0", text_color = color.white, text_size = size.small, bgcolor = color.new(color.black, 0))
+    row += 1
+    
+    table.cell(dash, 0, row, "Structure", text_color = color.gray, text_size = size.small)
+    table.cell(dash, 1, row, f_biasText(swingState.bias), text_color = f_biasColor(swingState.bias, bullColor, bearColor), text_size = size.small)
+    row += 1
+    
+    table.cell(dash, 0, row, "Secondary", text_color = color.gray, text_size = size.small)
+    table.cell(dash, 1, row, f_biasText(secondaryState.bias), text_color = f_biasColor(secondaryState.bias, bullColor, bearColor), text_size = size.small)
+    row += 1
+    
+    table.cell(dash, 0, row, "Internal", text_color = color.gray, text_size = size.small)
+    table.cell(dash, 1, row, f_biasText(internalState.bias), text_color = f_biasColor(internalState.bias, bullColor, bearColor), text_size = size.small)
+    row += 1
+    
+    if showMTFInput
+        table.cell(dash, 0, row, "HTF (" + mtfTimeframeInput + ")", text_color = color.gray, text_size = size.small)
+        table.cell(dash, 1, row, f_biasText(mtfState.htfBias), text_color = f_biasColor(mtfState.htfBias, bullColor, bearColor), text_size = size.small)
+        row += 1
+
+    table.cell(dash, 0, row, "Regime", text_color = color.gray, text_size = size.small)
+    table.cell(dash, 1, row, regimeText, text_color = regimeColor, text_size = size.small)
+    row += 1
+    
+    table.cell(dash, 0, row, "Session", text_color = color.gray, text_size = size.small)
+    table.cell(dash, 1, row, sessionText, text_color = color.white, text_size = size.small)
+    row += 1
+    
+    table.cell(dash, 0, row, "ATR", text_color = color.gray, text_size = size.small)
+    table.cell(dash, 1, row, str.tostring(atrVal, format.mintick), text_color = color.white, text_size = size.small)
+    row += 1
+    
+    table.cell(dash, 0, row, "Order Blocks", text_color = color.gray, text_size = size.small)
+    table.cell(dash, 1, row, str.tostring(array.size(bullOBs) + array.size(bearOBs)), text_color = color.white, text_size = size.small)
+    row += 1
+    
+    table.cell(dash, 0, row, "FVGs", text_color = color.gray, text_size = size.small)
+    table.cell(dash, 1, row, str.tostring(array.size(fvgs)), text_color = color.white, text_size = size.small)
+    row += 1
+    
+    table.cell(dash, 0, row, "Voids", text_color = color.gray, text_size = size.small)
+    table.cell(dash, 1, row, str.tostring(array.size(voids)), text_color = color.white, text_size = size.small)
+    row += 1
+    
+    table.cell(dash, 0, row, "Zone", text_color = color.gray, text_size = size.small)
+    table.cell(dash, 1, row, priceZone, text_color = color.white, text_size = size.small)
+    row += 1
+    
+    table.cell(dash, 0, row, "High Info", text_color = color.gray, text_size = size.small)
+    table.cell(dash, 1, row, highInfoText, text_color = bearColor, text_size = size.small)
+    row += 1
+    
+    table.cell(dash, 0, row, "Low Info", text_color = color.gray, text_size = size.small)
+    table.cell(dash, 1, row, lowInfoText, text_color = bullColor, text_size = size.small)
+
+// =============================================================================
+// 23. AUXILIARY DATA (DATA WINDOW)
+// =============================================================================
+
+plot(swingState.bias, "Bias — Main", display = display.data_window)
+plot(secondaryState.bias, "Bias — Secondary", display = display.data_window)
+plot(internalState.bias, "Bias — Internal", display = display.data_window)
+plot(isConsolidating ? 1 : 0, "Consolidation (1/0)", display = display.data_window)
+plot(mtfState.htfBias, "Bias — HTF", display = display.data_window)
+
+// =============================================================================
+// 24. CONSOLIDATED ALERTS
+// =============================================================================
+
+// Main Structure
+alertcondition(swingState.bullishBOS,   "Veriscope • Bullish BOS (Main)",   "New bullish BOS in the main structure")
+alertcondition(swingState.bullishCHoCH, "Veriscope • Bullish CHoCH (Main)", "New bullish CHoCH in the main structure")
+alertcondition(swingState.bearishBOS,   "Veriscope • Bearish BOS (Main)",  "New bearish BOS in the main structure")
+alertcondition(swingState.bearishCHoCH, "Veriscope • Bearish CHoCH (Main)","New bearish CHoCH in the main structure")
+
+// Secondary Structure
+alertcondition(secondaryState.bullishBOS,   "Veriscope • Bullish BOS (Secondary)",   "New bullish BOS in the secondary structure")
+alertcondition(secondaryState.bullishCHoCH, "Veriscope • Bullish CHoCH (Secondary)", "New bullish CHoCH in the secondary structure")
+alertcondition(secondaryState.bearishBOS,   "Veriscope • Bearish BOS (Secondary)",  "New bearish BOS in the secondary structure")
+alertcondition(secondaryState.bearishCHoCH, "Veriscope • Bearish CHoCH (Secondary)","New bearish CHoCH in the secondary structure")
+
+// Internal Structure
+alertcondition(internalState.bullishBOS,   "Veriscope • Bullish Micro BOS",   "New bullish micro BOS (internal structure)")
+alertcondition(internalState.bullishCHoCH, "Veriscope • Bullish Micro CHoCH", "New bullish micro CHoCH (internal structure)")
+alertcondition(internalState.bearishBOS,   "Veriscope • Bearish Micro BOS",  "New bearish micro BOS (internal structure)")
+alertcondition(internalState.bearishCHoCH, "Veriscope • Bearish Micro CHoCH","New bearish micro CHoCH (internal structure)")
+
+// Liquidity
+alertcondition(swingState.newEQH, "Veriscope • Equal Highs", "New pair of Equal Highs / liquidity pool detected")
+alertcondition(swingState.newEQL, "Veriscope • Equal Lows",  "New pair of Equal Lows / liquidity pool detected")
+alertcondition(bullishSweepCond, "Veriscope • Liquidity Swept (Low)", "Sweep / Liquidity Grab / Stop Hunt at a liquidity low")
+alertcondition(bearishSweepCond, "Veriscope • Liquidity Swept (High)",  "Sweep / Liquidity Grab / Stop Hunt at a liquidity high")
+
+// Order Blocks
+bullishOBCreated = array.size(bullOBs) > 0 and array.get(bullOBs, 0).state == "Active"
+bearishOBCreated = array.size(bearOBs) > 0 and array.get(bearOBs, 0).state == "Active"
+alertcondition(bullishOBCreated, "Veriscope • Bullish Order Block Created", "New bullish Order Block was created")
+alertcondition(bearishOBCreated, "Veriscope • Bearish Order Block Created", "New bearish Order Block was created")
+
+// Breaker Blocks
+bullishBreakerExists = array.size(bullOBs) > 0 and array.get(bullOBs, 0).state == "Breaker"
+bearishBreakerExists = array.size(bearOBs) > 0 and array.get(bearOBs, 0).state == "Breaker"
+alertcondition(bullishBreakerExists, "Veriscope • Bullish Breaker Block Formed", "Bullish Breaker Block was formed")
+alertcondition(bearishBreakerExists, "Veriscope • Bearish Breaker Block Formed", "Bearish Breaker Block was formed")
+
+// Reclaimed Order Blocks
+bullishReclaimedExists = array.size(bullOBs) > 0 and array.get(bullOBs, 0).state == "Reclaimed"
+bearishReclaimedExists = array.size(bearOBs) > 0 and array.get(bearOBs, 0).state == "Reclaimed"
+alertcondition(bullishReclaimedExists, "Veriscope • Bullish Reclaimed Order Block", "Bullish Order Block was reclaimed")
+alertcondition(bearishReclaimedExists, "Veriscope • Bearish Reclaimed Order Block", "Bearish Order Block was reclaimed")
+
+// FVGs
+bullishFVGCreated = array.size(fvgs) > 0 and array.get(fvgs, 0).bullish and array.get(fvgs, 0).state == "Active"
+bearishFVGCreated = array.size(fvgs) > 0 and not array.get(fvgs, 0).bullish and array.get(fvgs, 0).state == "Active"
+alertcondition(bullishFVGCreated, "Veriscope • Bullish Fair Value Gap Created", "New bullish FVG was created")
+alertcondition(bearishFVGCreated, "Veriscope • Bearish Fair Value Gap Created", "New bearish FVG was created")
+
+// BPR
+bprDetected = array.size(fvgs) > 0 and array.get(fvgs, 0).isBPR
+alertcondition(bprDetected, "Veriscope • Balanced Price Range Detected", "Overlap of opposite FVGs — BPR formed")
+
+// OTE and Golden Zones
+rangeT = swingState.pivotHighPrice
+rangeB = swingState.pivotLowPrice
+priceInOTE = not na(rangeT) and not na(rangeB) and close >= rangeT - (rangeT - rangeB) * oteStartInput and close <= rangeT - (rangeT - rangeB) * oteEndInput
+priceInGolden = not na(rangeT) and not na(rangeB) and close >= rangeT - (rangeT - rangeB) * goldenStartInput and close <= rangeT - (rangeT - rangeB) * goldenEndInput
+alertcondition(priceInOTE, "Veriscope • Price Entering the OTE Zone", "Price entered the OTE zone (Optimal Trade Entry)")
+alertcondition(priceInGolden, "Veriscope • Price Entering the Golden Zone", "Price entered the Golden Zone")
+
+// HTF Bias Change
+htfBiasChange = showMTFInput and mtfState.htfBias != 0
+alertcondition(htfBiasChange, "Veriscope • HTF Bias Change", "The higher timeframe bias has changed")
+
+// Master Alert (Confluence)
+confluenceSignal = (swingState.bullishBOS or swingState.bullishCHoCH) and bullishOBCreated and priceInGolden
+alertcondition(confluenceSignal, "Veriscope • Combined Bullish Confluence", "Multiple bullish signals converging: BOS/CHoCH + OB + Golden Zone")
+
+// =============================================================================
+// END OF SCRIPT
+// =============================================================================

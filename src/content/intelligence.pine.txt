@@ -1,0 +1,692 @@
+//@version=6
+// =============================================================================
+// VERISCOPE INTELLIGENCE — DECISION ENGINE v1.0 (FIXED)
+// Decision engine complementary to Veriscope Pro. Produces a 0-100 score and a
+// A+/A/B/C/D grade based on deterministic rules (no machine learning).
+// -----------------------------------------------------------------------------
+// ORIGINAL implementation, written from scratch, based on public concepts of
+// Institutional Price Action (Smart Money Concepts / ICT). No code, name,
+// brand, or visual identity from third parties was copied.
+//
+// NOTE: Pine Script does not allow one indicator to read arrays/objects from
+// another script. Therefore, this indicator has its own internal engine,
+// lighter than Veriscope Pro's (1 level of structure, no drawing of
+// zones/OB/FVG — only tracking for scoring). "Bridge" Mode allows importing
+// only the HTF Bias from Veriscope Pro via input.source, as an optional
+// refinement.
+// =============================================================================
+indicator(title = "Veriscope Intelligence — Decision Engine", shorttitle = "Veriscope Intel", overlay = true)
+
+// =============================================================================
+// 1. DATA TYPES
+// =============================================================================
+type ModuleScore
+    float score = 0.0
+    string detail = ""
+    bool passed = false
+
+type StructureSnapshot
+    int bias = 0
+    bool bullishBOS = false
+    bool bearishBOS = false
+    bool bullishCHoCH = false
+    bool bearishCHoCH = false
+    float pivotHigh = na
+    float pivotLow = na
+    bool isConsolidating = false
+
+type LiquiditySnapshot
+    bool recentSweep = false
+    int sweepDirection = 0
+    bool eqhPresent = false
+    bool eqlPresent = false
+    string sweepType = "—"
+
+type OrderBlockSnapshot
+    float obTop = na
+    float obBottom = na
+    string obQualityText = "—"
+    string obState = "—"
+    bool exists = false
+
+type FVGSnapshot
+    float fvgTop = na
+    float fvgBottom = na
+    bool fvgExists = false
+    bool bullish = false
+    string fvgState = "—"
+
+type ZoneSnapshot
+    string currentZone = "N/A"
+
+type ScoringResult
+    float scoreModule1 = 0.0
+    float scoreModule2 = 0.0
+    float scoreModule3 = 0.0
+    float scoreModule4 = 0.0
+    float scoreModule5 = 0.0
+    float scoreModule6 = 0.0
+    float scoreModule7 = 0.0
+    float scoreModule8 = 0.0
+    float scoreModule9 = 0.0
+    float scoreModule10 = 100.0
+    float scoreFinal = 0.0
+    string notation = "—"
+    int gatesFailed = 0
+    string gateDetails = ""
+
+// =============================================================================
+// 2. USER SETTINGS
+// =============================================================================
+GRP_GENERAL = "General"
+modeInput = input.string("Standalone", "Mode", options = ["Standalone", "Bridge (Veriscope Pro)"], group = GRP_GENERAL, tooltip = "Standalone: internal engine calculates the HTF Bias on its own. Bridge: imports the HTF Bias from a Veriscope Pro plot via input.source.")
+themeInput = input.string("Colored", "Theme", options = ["Colored", "Monochrome"], group = GRP_GENERAL)
+bullColorInput = input.color(#0E9F6E, "Bullish Color", group = GRP_GENERAL)
+bearColorInput = input.color(#E5484D, "Bearish Color", group = GRP_GENERAL)
+
+GRP_STRUCTURE = "Market Structure (Internal Engine)"
+swingLenInput = input.int(50, "Period — Structure (Swing)", minval = 2, group = GRP_STRUCTURE)
+confirmModeInput = input.string("Close", "Break Confirmation", options = ["Close", "Wick"], group = GRP_STRUCTURE)
+atrLenInput = input.int(14, "ATR Period", minval = 1, group = GRP_STRUCTURE)
+consolidationCheckInput = input.bool(true, "Detect Consolidation", group = GRP_STRUCTURE)
+consolidationLenInput = input.int(20, "Period — Consolidation", minval = 5, group = GRP_STRUCTURE)
+consolidationAtrMultInput = input.float(1.0, "Consolidation Threshold (x ATR)", minval = 0.1, step = 0.1, group = GRP_STRUCTURE)
+
+GRP_WEIGHTS = "Module Weights (auto renormalized)"
+w1Input = input.float(15, "1. Structure", minval = 0, maxval = 100, step = 1, group = GRP_WEIGHTS)
+w2Input = input.float(15, "2. BOS/CHoCH", minval = 0, maxval = 100, step = 1, group = GRP_WEIGHTS)
+w3Input = input.float(15, "3. Liquidity", minval = 0, maxval = 100, step = 1, group = GRP_WEIGHTS)
+w4Input = input.float(15, "4. Order Block", minval = 0, maxval = 100, step = 1, group = GRP_WEIGHTS)
+w5Input = input.float(10, "5. FVG", minval = 0, maxval = 100, step = 1, group = GRP_WEIGHTS)
+w6Input = input.float(10, "6. Zone/Positioning", minval = 0, maxval = 100, step = 1, group = GRP_WEIGHTS)
+w7Input = input.float(10, "7. MTF Alignment", minval = 0, maxval = 100, step = 1, group = GRP_WEIGHTS)
+w8Input = input.float(5, "8. Session/Timing", minval = 0, maxval = 100, step = 1, group = GRP_WEIGHTS)
+w9Input = input.float(5, "9. Risk/Reward", minval = 0, maxval = 100, step = 1, group = GRP_WEIGHTS)
+
+GRP_GATES = "Gates (Cutoff Rules)"
+gateConflictInput = input.bool(true, "Gate: HTF Directional Conflict", group = GRP_GATES, tooltip = "If LTF vs HTF conflict, max score 50")
+gateAbsentLevelInput = input.bool(true, "Gate: Level Absence", group = GRP_GATES, tooltip = "No nearby OB/FVG, max score 65")
+gateSweptLiquidityInput = input.bool(true, "Gate: Liquidity Not Swept", group = GRP_GATES, tooltip = "CHoCH setup without prior sweep, max score 70")
+gateRRInput = input.bool(true, "Gate: Minimum RR", group = GRP_GATES, tooltip = "RR below minimum, max score 60")
+rrMinimumInput = input.float(1.5, "Minimum Acceptable RR", minval = 1.0, step = 0.1, group = GRP_GATES)
+
+GRP_MTF = "Multi-Timeframe"
+htfInput = input.timeframe("D", "Higher Timeframe", group = GRP_MTF)
+htfLenInput = input.int(20, "HTF Structure Period", minval = 2, group = GRP_MTF)
+mtfBiasSourceInput = input.source(close, "Import HTF Bias (Bridge Mode)", group = GRP_MTF, tooltip = "Connect to the 'Bias — HTF' plot of Veriscope Pro when Mode = Bridge")
+
+GRP_ZONES = "Zones (Premium/Discount/OTE)"
+premiumDiscountCalcInput = input.bool(true, "Calculate Premium/Discount", group = GRP_ZONES)
+oteStartInput = input.float(0.618, "OTE Start (Fib)", minval = 0.0, maxval = 1.0, step = 0.001, group = GRP_ZONES)
+oteEndInput = input.float(0.79, "OTE End (Fib)", minval = 0.0, maxval = 1.0, step = 0.001, group = GRP_ZONES)
+goldenStartInput = input.float(0.618, "Golden Start (Fib)", minval = 0.0, maxval = 1.0, step = 0.001, group = GRP_ZONES)
+goldenEndInput = input.float(0.65, "Golden End (Fib)", minval = 0.0, maxval = 1.0, step = 0.001, group = GRP_ZONES)
+
+GRP_SESSIONS = "Sessions"
+showSessionsInput = input.bool(true, "Consider Sessions", group = GRP_SESSIONS)
+prioritySessionInput = input.string("London", "Priority Session", options = ["None", "Asia", "London", "New York"], group = GRP_SESSIONS)
+
+GRP_CLASSIFICATION = "Grade Classification"
+thresholdAPlus = input.float(90, "A+: score ≥", minval = 80, maxval = 100, step = 1, group = GRP_CLASSIFICATION)
+thresholdA = input.float(80, "A: score ≥", minval = 70, maxval = 95, step = 1, group = GRP_CLASSIFICATION)
+thresholdB = input.float(65, "B: score ≥", minval = 50, maxval = 80, step = 1, group = GRP_CLASSIFICATION)
+thresholdC = input.float(50, "C: score ≥", minval = 30, maxval = 65, step = 1, group = GRP_CLASSIFICATION)
+
+GRP_DASHBOARD = "Dashboard"
+showDashboardInput = input.bool(true, "Show Dashboard", group = GRP_DASHBOARD)
+dashPosInput = input.string("Top Right", "Position", options = ["Top Right", "Top Left", "Bottom Right", "Bottom Left"], group = GRP_DASHBOARD)
+showChecklistInput = input.bool(true, "Show Detailed Checklist", group = GRP_DASHBOARD)
+
+GRP_ALERTS = "Alerts"
+enableAlertsInput = input.bool(true, "Enable Alerts", group = GRP_ALERTS)
+minNoteForAlertInput = input.string("A", "Minimum Grade for Alert", options = ["A+", "A", "B", "C"], group = GRP_ALERTS)
+alertLongInput = input.bool(true, "Alert Long", group = GRP_ALERTS)
+alertShortInput = input.bool(true, "Alert Short", group = GRP_ALERTS)
+
+// =============================================================================
+// 3. UTILITY FUNCTIONS
+// =============================================================================
+f_dashPosition(string p) =>
+    switch p
+        "Top Right" => position.top_right
+        "Top Left" => position.top_left
+        "Bottom Right" => position.bottom_right
+        "Bottom Left" => position.bottom_left
+        => position.top_right
+
+f_themeColor(bool isBull, string theme, color bullCol, color bearCol) =>
+    monoBull = #9CA3AF
+    monoBear = #4B5563
+    theme == "Monochrome" ? (isBull ? monoBull : monoBear) : (isBull ? bullCol : bearCol)
+
+f_isInPrioritySession() =>
+    bool result = true
+    if prioritySessionInput != "None"
+        h = hour(time, "UTC")
+        result := switch prioritySessionInput
+            "London" => h >= 7 and h < 10
+            "New York" => h >= 12 and h < 15
+            "Asia" => h >= 0 and h < 8
+            => true
+    result
+
+// -- Internal engine: Structure --------------------------------------------------
+f_updateStructureSnapshot(StructureSnapshot st, float atrVal) =>
+    ph = ta.pivothigh(swingLenInput, swingLenInput)
+    pl = ta.pivotlow(swingLenInput, swingLenInput)
+    if not na(ph)
+        st.pivotHigh := ph
+    if not na(pl)
+        st.pivotLow := pl
+    
+    st.bullishBOS := false
+    st.bearishBOS := false
+    st.bullishCHoCH := false
+    st.bearishCHoCH := false
+    
+    checkSrcUp = confirmModeInput == "Wick" ? high : close
+    checkSrcDown = confirmModeInput == "Wick" ? low : close
+    
+    breakUp = not na(st.pivotHigh) and checkSrcUp > st.pivotHigh + atrVal * 0.25
+    breakDown = not na(st.pivotLow) and checkSrcDown < st.pivotLow - atrVal * 0.25
+    
+    if breakUp
+        if st.bias < 0
+            st.bullishCHoCH := true
+        else
+            st.bullishBOS := true
+        st.bias := 1
+        
+    if breakDown
+        if st.bias > 0
+            st.bearishCHoCH := true
+        else
+            st.bearishBOS := true
+        st.bias := -1
+        
+    if consolidationCheckInput
+        rangeHigh = ta.highest(high, consolidationLenInput)
+        rangeLow = ta.lowest(low, consolidationLenInput)
+        st.isConsolidating := (rangeHigh - rangeLow) <= consolidationAtrMultInput * atrVal
+    else
+        st.isConsolidating := false
+
+// -- Internal engine: Liquidity ---------------------------------------------------
+f_updateLiquiditySnapshot(LiquiditySnapshot liq, StructureSnapshot st, float atrVal) =>
+    liq.recentSweep := false
+    if not na(st.pivotLow) and low < st.pivotLow and close > st.pivotLow
+        liq.recentSweep := true
+        liq.sweepDirection := 1
+        liq.sweepType := "Bullish"
+    if not na(st.pivotHigh) and high > st.pivotHigh and close < st.pivotHigh
+        liq.recentSweep := true
+        liq.sweepDirection := -1
+        liq.sweepType := "Bearish"
+    liq.eqhPresent := math.abs(high - ta.highest(high, 50)) < atrVal * 0.1
+    liq.eqlPresent := math.abs(low - ta.lowest(low, 50)) < atrVal * 0.1
+
+// -- Internal engine: Order Block -------------------------------------------------
+f_calculateOBQuality(float rangeSize, float atrVal) =>
+    ratio = atrVal > 0 ? rangeSize / atrVal : 0.0
+    string q = ratio >= 3.0 ? "Very Strong" : ratio >= 2.0 ? "Strong" : ratio >= 1.0 ? "Normal" : "Weak"
+    q
+
+f_getOBQualityScore(string quality) =>
+    float s = switch quality
+        "Very Strong" => 90.0
+        "Strong" => 70.0
+        "Normal" => 45.0
+        => 20.0
+    s
+
+f_determineOBState(float top, float bottom, bool isBullish) =>
+    mid = (top + bottom) / 2.0
+    string state = "Active"
+    if isBullish
+        if close >= top
+            state := "Reclaimed"
+        else if close <= bottom
+            state := "Breaker"
+        else if close > mid
+            state := "Mitigated"
+    else
+        if close <= bottom
+            state := "Reclaimed"
+        else if close >= top
+            state := "Breaker"
+        else if close < mid
+            state := "Mitigated"
+    state
+
+f_updateOrderBlockSnapshot(OrderBlockSnapshot ob, StructureSnapshot st, float atrVal) =>
+    if st.bullishBOS or st.bullishCHoCH
+        for i = 1 to 20
+            if close[i] < open[i]
+                ob.obTop := high[i]
+                ob.obBottom := low[i]
+                ob.obQualityText := f_calculateOBQuality(high[i] - low[i], atrVal)
+                ob.exists := true
+                break
+    if st.bearishBOS or st.bearishCHoCH
+        for i = 1 to 20
+            if close[i] > open[i]
+                ob.obTop := high[i]
+                ob.obBottom := low[i]
+                ob.obQualityText := f_calculateOBQuality(high[i] - low[i], atrVal)
+                ob.exists := true
+                break
+    if ob.exists
+        ob.obState := f_determineOBState(ob.obTop, ob.obBottom, st.bias == 1)
+
+// -- Internal engine: FVG ---------------------------------------------------------
+f_updateFVGSnapshot(FVGSnapshot fvg) =>
+    if low > high[2]
+        fvg.fvgTop := low
+        fvg.fvgBottom := high[2]
+        fvg.fvgExists := true
+        fvg.bullish := true
+        fvg.fvgState := "Active"
+    else if high < low[2]
+        fvg.fvgTop := low[2]
+        fvg.fvgBottom := high
+        fvg.fvgExists := true
+        fvg.bullish := false
+        fvg.fvgState := "Active"
+    if fvg.fvgExists
+        if fvg.bullish and close <= fvg.fvgBottom
+            fvg.fvgState := "Mitigated"
+        if not fvg.bullish and close >= fvg.fvgTop
+            fvg.fvgState := "Mitigated"
+
+// -- Zones -----------------------------------------------------------------------
+f_updateZoneSnapshot(ZoneSnapshot z, StructureSnapshot st) =>
+    if not premiumDiscountCalcInput
+        z.currentZone := "N/A"
+    else if na(st.pivotHigh) or na(st.pivotLow)
+        z.currentZone := "N/A"
+    else
+        rangeTop = st.pivotHigh
+        rangeBot = st.pivotLow
+        eqLevel = (rangeTop + rangeBot) / 2.0
+        oteTop = rangeTop - (rangeTop - rangeBot) * oteStartInput
+        oteBot = rangeTop - (rangeTop - rangeBot) * oteEndInput
+        goldenTop = rangeTop - (rangeTop - rangeBot) * goldenStartInput
+        goldenBot = rangeTop - (rangeTop - rangeBot) * goldenEndInput
+        if close > rangeTop
+            z.currentZone := "Above"
+        else if close < rangeBot
+            z.currentZone := "Below"
+        else if close >= goldenTop and close <= goldenBot
+            z.currentZone := "Golden"
+        else if close >= oteTop and close <= oteBot
+            z.currentZone := "OTE"
+        else if close > eqLevel
+            z.currentZone := "Premium"
+        else
+            z.currentZone := "Discount"
+
+// -- Scoring Modules --------------------------------------------------------------
+f_module1_structureQuality(StructureSnapshot st) =>
+    score = 0.0
+    detail = ""
+    if st.bias != 0
+        score += 40
+        detail := detail + "Clear bias "
+    if not st.isConsolidating
+        score += 25
+        detail := detail + "| Not consolidating "
+    else
+        detail := detail + "| Consolidating "
+    if st.bullishBOS or st.bullishCHoCH or st.bearishBOS or st.bearishCHoCH
+        score += 20
+        detail := detail + "| Recent break"
+    ModuleScore.new(score = math.min(score, 100), detail = detail, passed = score >= 50)
+
+f_module2_bosQuality(StructureSnapshot st, LiquiditySnapshot liq) =>
+    score = 0.0
+    detail = ""
+    if st.bullishBOS
+        score := 70
+        detail := "Bullish BOS | Continuation"
+    else if st.bearishBOS
+        score := 70
+        detail := "Bearish BOS | Continuation"
+    else if st.bullishCHoCH
+        score := 55
+        detail := "Bullish CHoCH | Reversal"
+        if liq.recentSweep and liq.sweepDirection == -1
+            score += 15
+            detail := detail + " + Sweep"
+    else if st.bearishCHoCH
+        score := 55
+        detail := "Bearish CHoCH | Reversal"
+        if liq.recentSweep and liq.sweepDirection == 1
+            score += 15
+            detail := detail + " + Sweep"
+    else
+        detail := "No recent break"
+    ModuleScore.new(score = math.min(score, 100), detail = detail, passed = score >= 40)
+
+f_module3_liquidity(LiquiditySnapshot liq) =>
+    score = 0.0
+    detail = ""
+    if liq.recentSweep
+        score += 50
+        detail := "Confirmed sweep " + liq.sweepType
+    if liq.eqhPresent
+        score += 15
+        detail := detail + "| EQH nearby"
+    if liq.eqlPresent
+        score += 15
+        detail := detail + "| EQL nearby"
+    if score == 0
+        detail := "No liquidity detected"
+    ModuleScore.new(score = math.min(score, 100), detail = detail, passed = score >= 30)
+
+f_module4_orderBlockQuality(OrderBlockSnapshot ob) =>
+    score = 0.0
+    detail = ""
+    if ob.exists
+        score := f_getOBQualityScore(ob.obQualityText)
+        detail := ob.obQualityText + " | " + ob.obState
+        if ob.obState == "Active"
+            score += 10
+    else
+        detail := "No nearby Order Block"
+    ModuleScore.new(score = math.min(score, 100), detail = detail, passed = score >= 40)
+
+f_module5_fvgQuality(FVGSnapshot fvg, float atrVal) =>
+    score = 0.0
+    detail = ""
+    if fvg.fvgExists
+        gapSize = fvg.fvgTop - fvg.fvgBottom
+        gapRatio = atrVal > 0 ? gapSize / atrVal : 0.0
+        score := math.min(gapRatio * 15, 80)
+        detail := fvg.fvgState + " | Gap: " + str.tostring(gapRatio, "#.00") + "x ATR"
+        if fvg.fvgState == "Active"
+            score += 10
+    else
+        detail := "No nearby FVG"
+    ModuleScore.new(score = math.min(score, 100), detail = detail, passed = score >= 30)
+
+f_module6_zone(ZoneSnapshot z) =>
+    score = switch z.currentZone
+        "Golden" => 100.0
+        "OTE" => 85.0
+        "Premium" => 55.0
+        "Discount" => 55.0
+        "Above" => 20.0
+        "Below" => 20.0
+        => 30.0
+    detail = switch z.currentZone
+        "Golden" => "Golden Zone"
+        "OTE" => "OTE Zone"
+        "Premium" => "Premium"
+        "Discount" => "Discount"
+        "Above" => "Above range"
+        "Below" => "Below range"
+        => "Undetermined zone"
+    ModuleScore.new(score = score, detail = detail, passed = score >= 40)
+
+f_module7_mtfAlignment(StructureSnapshot st, int htfBias) =>
+    score = 0.0
+    detail = ""
+    if htfBias == st.bias and htfBias != 0
+        score := 100
+        detail := "HTF align: " + (htfBias == 1 ? "Bull" : "Bear")
+    else if htfBias == 0
+        score := 60
+        detail := "HTF neutral"
+    else
+        score := 0
+        detail := "HTF conflicts"
+    ModuleScore.new(score = score, detail = detail, passed = score >= 50)
+
+f_module8_session() =>
+    score = 0.0
+    detail = ""
+    if not showSessionsInput
+        score := 50
+        detail := "Sessions disabled"
+    else if f_isInPrioritySession()
+        score := 100
+        detail := "In priority session"
+    else
+        score := 60
+        detail := "Outside priority session"
+    ModuleScore.new(score = score, detail = detail, passed = true)
+
+f_module9_riskReward(OrderBlockSnapshot ob, FVGSnapshot fvg) =>
+    rr = 1.5
+    if ob.exists and fvg.fvgExists
+        distToInvalidation = math.abs(close - ob.obBottom)
+        distToTarget = math.abs(fvg.fvgTop - close)
+        if distToInvalidation > 0
+            rr := distToTarget / distToInvalidation
+    score = 0.0
+    detail = ""
+    if rr >= 3.0
+        score := 100
+        detail := "RR " + str.tostring(rr, "#.00") + " | Excellent"
+    else if rr >= 2.0
+        score := 80
+        detail := "RR " + str.tostring(rr, "#.00") + " | Good"
+    else if rr >= 1.5
+        score := 60
+        detail := "RR " + str.tostring(rr, "#.00") + " | Acceptable"
+    else
+        score := 30
+        detail := "RR " + str.tostring(rr, "#.00") + " | Poor"
+    ModuleScore.new(score = score, detail = detail, passed = rr >= rrMinimumInput)
+
+f_module10_regimeMultiplier(StructureSnapshot st) =>
+    float mult = 1.0
+    if st.isConsolidating
+        mult := 0.75
+    else if st.bullishBOS or st.bearishBOS
+        mult := 1.05
+    else if st.bullishCHoCH or st.bearishCHoCH
+        mult := 0.85
+    mult
+
+f_normalizeWeights(float w1, float w2, float w3, float w4, float w5, float w6, float w7, float w8, float w9) =>
+    total = w1 + w2 + w3 + w4 + w5 + w6 + w7 + w8 + w9
+    if total > 0
+        [w1 / total * 100.0, w2 / total * 100.0, w3 / total * 100.0, w4 / total * 100.0, w5 / total * 100.0, w6 / total * 100.0, w7 / total * 100.0, w8 / total * 100.0, w9 / total * 100.0]
+    else
+        [w1, w2, w3, w4, w5, w6, w7, w8, w9]
+
+f_checkGates(StructureSnapshot st, LiquiditySnapshot liq, OrderBlockSnapshot ob, FVGSnapshot fvg, int htfBias, bool rrPassed) =>
+    maxCap = 100.0
+    failedGates = 0
+    gateDetails = ""
+    if gateConflictInput and htfBias != 0 and htfBias != st.bias
+        failedGates += 1
+        maxCap := math.min(maxCap, 50.0)
+        gateDetails := gateDetails + "❌ HTF conflicts\n"
+    if gateAbsentLevelInput and not ob.exists and not fvg.fvgExists
+        failedGates += 1
+        maxCap := math.min(maxCap, 65.0)
+        gateDetails := gateDetails + "❌ No nearby level\n"
+    if gateSweptLiquidityInput and (st.bullishCHoCH or st.bearishCHoCH) and not liq.recentSweep
+        failedGates += 1
+        maxCap := math.min(maxCap, 70.0)
+        gateDetails := gateDetails + "❌ CHoCH without sweep\n"
+    if gateRRInput and not rrPassed
+        failedGates += 1
+        maxCap := math.min(maxCap, 60.0)
+        gateDetails := gateDetails + "❌ Insufficient RR\n"
+    [failedGates, maxCap, gateDetails]
+
+// -- Dashboard -----------------------------------------------------------------
+f_populateDashboard(table t, ScoringResult result, StructureSnapshot st, ZoneSnapshot z) =>
+    noteColor = (result.notation == "A+" or result.notation == "A") ? bullColorInput : (result.notation == "B" or result.notation == "C") ? color.orange : bearColorInput
+    filledBlocks = int(result.scoreFinal / 10.0)
+    progressBar = ""
+    for i = 0 to 9
+        progressBar := progressBar + (i < filledBlocks ? "█" : "░")
+    
+    row = 0
+    table.cell(t, 0, row, "VERISCOPE INTELLIGENCE", text_color = color.white, text_size = size.small, bgcolor = color.new(color.black, 0), text_halign = text.align_center)
+    table.cell(t, 1, row, "", bgcolor = color.new(color.black, 0))
+    
+    row += 1
+    table.cell(t, 0, row, "Score", text_color = color.gray, text_size = size.small)
+    table.cell(t, 1, row, str.tostring(result.scoreFinal, "#.0") + "/100 | " + result.notation, text_color = noteColor, text_size = size.small, text_halign = text.align_right)
+    
+    row += 1
+    table.cell(t, 0, row, "Progress", text_color = color.gray, text_size = size.small)
+    table.cell(t, 1, row, progressBar, text_color = color.white, text_size = size.small, text_halign = text.align_right)
+    
+    row += 1
+    directionText = st.bias == 1 ? "🔼 BULLISH" : st.bias == -1 ? "🔽 BEARISH" : "◼ NEUTRAL"
+    directionColor = st.bias == 1 ? bullColorInput : st.bias == -1 ? bearColorInput : color.gray
+    table.cell(t, 0, row, "Direction", text_color = color.gray, text_size = size.small)
+    table.cell(t, 1, row, directionText, text_color = directionColor, text_size = size.small, text_halign = text.align_right)
+    
+    row += 1
+    regimeText = st.isConsolidating ? "CONSOLIDATION" : "TREND"
+    table.cell(t, 0, row, "Regime", text_color = color.gray, text_size = size.small)
+    table.cell(t, 1, row, regimeText, text_color = st.isConsolidating ? color.orange : color.white, text_size = size.small, text_halign = text.align_right)
+    
+    row += 1
+    table.cell(t, 0, row, "Zone", text_color = color.gray, text_size = size.small)
+    table.cell(t, 1, row, z.currentZone, text_color = color.white, text_size = size.small, text_halign = text.align_right)
+    
+    row += 1
+    gatesStatus = result.gatesFailed == 0 ? "✔ Passed" : "❌ " + str.tostring(result.gatesFailed) + " Gate(s)"
+    table.cell(t, 0, row, "Gates", text_color = color.gray, text_size = size.small)
+    table.cell(t, 1, row, gatesStatus, text_color = result.gatesFailed == 0 ? bullColorInput : color.orange, text_size = size.small, text_halign = text.align_right)
+    
+    row += 1
+    if showChecklistInput
+        table.cell(t, 0, row, "— CHECKLIST —", text_color = color.gray, text_size = size.small, bgcolor = color.new(color.black, 0))
+        table.cell(t, 1, row, "", bgcolor = color.new(color.black, 0))
+        
+        row += 1
+        checkNames = array.from("1. Structure", "2. BOS/CHoCH", "3. Liquidity", "4. Order Block", "5. FVG", "6. Zone", "7. MTF", "8. Session", "9. RR")
+        checkScores = array.from(result.scoreModule1, result.scoreModule2, result.scoreModule3, result.scoreModule4, result.scoreModule5, result.scoreModule6, result.scoreModule7, result.scoreModule8, result.scoreModule9)
+        
+        for i = 0 to array.size(checkNames) - 1
+            checkName = array.get(checkNames, i)
+            checkScore = array.get(checkScores, i)
+            passed = checkScore >= 50
+            symbol = passed ? "✔" : "✘"
+            symbolColor = passed ? bullColorInput : color.new(color.gray, 50)
+            table.cell(t, 0, row, checkName, text_color = color.gray, text_size = size.tiny)
+            table.cell(t, 1, row, symbol + " " + str.tostring(checkScore, "#.0"), text_color = symbolColor, text_size = size.tiny, text_halign = text.align_right)
+            row += 1
+
+// =============================================================================
+// 4. GLOBAL VARIABLES
+// =============================================================================
+var StructureSnapshot structure = StructureSnapshot.new()
+var LiquiditySnapshot liquidity = LiquiditySnapshot.new()
+var OrderBlockSnapshot obSnapshot = OrderBlockSnapshot.new()
+var FVGSnapshot fvgSnapshot = FVGSnapshot.new()
+var ZoneSnapshot zoneSnapshot = ZoneSnapshot.new()
+var ScoringResult lastResult = ScoringResult.new()
+
+var table dashboardTable = table.new(f_dashPosition(dashPosInput), 2, 17, bgcolor = color.new(color.black, 15), border_color = color.new(color.gray, 50), border_width = 1, frame_color = color.new(color.gray, 50), frame_width = 1)
+var float htfLastPivotHigh = na
+var float htfLastPivotLow = na
+
+// =============================================================================
+// 5. EXECUTION — SNAPSHOT UPDATES
+// =============================================================================
+atrVal = ta.atr(atrLenInput)
+f_updateStructureSnapshot(structure, atrVal)
+f_updateLiquiditySnapshot(liquidity, structure, atrVal)
+f_updateOrderBlockSnapshot(obSnapshot, structure, atrVal)
+f_updateFVGSnapshot(fvgSnapshot)
+f_updateZoneSnapshot(zoneSnapshot, structure)
+
+// =============================================================================
+// 6. HTF — HIGHER TIMEFRAME BIAS (primitives only)
+// =============================================================================
+[htfPH, htfPL] = request.security(syminfo.tickerid, htfInput, [ta.pivothigh(htfLenInput, htfLenInput), ta.pivotlow(htfLenInput, htfLenInput)], lookahead = barmerge.lookahead_off)
+
+if not na(htfPH)
+    htfLastPivotHigh := htfPH
+if not na(htfPL)
+    htfLastPivotLow := htfPL
+
+htfBiasAuto = (na(htfLastPivotHigh) or na(htfLastPivotLow)) ? 0 : (close > htfLastPivotHigh ? 1 : close < htfLastPivotLow ? -1 : 0)
+htfBiasFinal = modeInput == "Standalone" ? htfBiasAuto : int(mtfBiasSourceInput)
+
+// =============================================================================
+// 7. MODULE CALCULATION
+// =============================================================================
+m1 = f_module1_structureQuality(structure)
+m2 = f_module2_bosQuality(structure, liquidity)
+m3 = f_module3_liquidity(liquidity)
+m4 = f_module4_orderBlockQuality(obSnapshot)
+m5 = f_module5_fvgQuality(fvgSnapshot, atrVal)
+m6 = f_module6_zone(zoneSnapshot)
+m7 = f_module7_mtfAlignment(structure, htfBiasFinal)
+m8 = f_module8_session()
+m9 = f_module9_riskReward(obSnapshot, fvgSnapshot)
+
+[nw1, nw2, nw3, nw4, nw5, nw6, nw7, nw8, nw9] = f_normalizeWeights(w1Input, w2Input, w3Input, w4Input, w5Input, w6Input, w7Input, w8Input, w9Input)
+
+weightedSum = (m1.score * nw1 + m2.score * nw2 + m3.score * nw3 + m4.score * nw4 + m5.score * nw5 + m6.score * nw6 + m7.score * nw7 + m8.score * nw8 + m9.score * nw9) / 100.0
+regimeMultiplier = f_module10_regimeMultiplier(structure)
+scoreWithRegime = weightedSum * regimeMultiplier
+
+[gatesFailed, gateCap, gateDetails] = f_checkGates(structure, liquidity, obSnapshot, fvgSnapshot, htfBiasFinal, m9.passed)
+
+scoreFinal = math.min(scoreWithRegime, gateCap)
+notation = scoreFinal >= thresholdAPlus ? "A+" : scoreFinal >= thresholdA ? "A" : scoreFinal >= thresholdB ? "B" : scoreFinal >= thresholdC ? "C" : "D"
+
+lastResult.scoreModule1 := m1.score
+lastResult.scoreModule2 := m2.score
+lastResult.scoreModule3 := m3.score
+lastResult.scoreModule4 := m4.score
+lastResult.scoreModule5 := m5.score
+lastResult.scoreModule6 := m6.score
+lastResult.scoreModule7 := m7.score
+lastResult.scoreModule8 := m8.score
+lastResult.scoreModule9 := m9.score
+lastResult.scoreModule10 := regimeMultiplier * 100.0
+lastResult.scoreFinal := scoreFinal
+lastResult.notation := notation
+lastResult.gatesFailed := gatesFailed
+lastResult.gateDetails := gateDetails
+
+// =============================================================================
+// 8. DASHBOARD
+// =============================================================================
+if showDashboardInput and barstate.islast
+    f_populateDashboard(dashboardTable, lastResult, structure, zoneSnapshot)
+
+// =============================================================================
+// 9. ALERTS
+// =============================================================================
+minThreshold = switch minNoteForAlertInput
+    "A+" => thresholdAPlus
+    "A" => thresholdA
+    "B" => thresholdB
+    "C" => thresholdC
+    => thresholdC
+
+longSetupTrigger = enableAlertsInput and alertLongInput and structure.bias == 1 and scoreFinal >= minThreshold and (structure.bullishBOS or structure.bullishCHoCH)
+shortSetupTrigger = enableAlertsInput and alertShortInput and structure.bias == -1 and scoreFinal >= minThreshold and (structure.bearishBOS or structure.bearishCHoCH)
+
+alertcondition(longSetupTrigger, "Veriscope Intelligence • Long Setup", "New Long setup reached the configured minimum grade")
+alertcondition(shortSetupTrigger, "Veriscope Intelligence • Short Setup", "New Short setup reached the configured minimum grade")
+
+if longSetupTrigger
+    alert("🔼 LONG SETUP: Grade " + notation + " | Score " + str.tostring(scoreFinal, "#.0") + "/100", alert.freq_once_per_bar)
+
+if shortSetupTrigger
+    alert("🔽 SHORT SETUP: Grade " + notation + " | Score " + str.tostring(scoreFinal, "#.0") + "/100", alert.freq_once_per_bar)
+
+// =============================================================================
+// 10. AUXILIARY DATA (DATA WINDOW)
+// =============================================================================
+plot(scoreFinal, "Score", display = display.data_window, precision = 1)
+plot(structure.bias, "Bias LTF", display = display.data_window)
+plot(htfBiasFinal, "Bias HTF", display = display.data_window)
+// =============================================================================
+// END OF SCRIPT
+// =============================================================================
