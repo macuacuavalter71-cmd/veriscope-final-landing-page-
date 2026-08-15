@@ -1,22 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Header } from "@/components/veriscope/Header";
 import { Section } from "@/components/veriscope/Section";
 import { Carousel } from "@/components/veriscope/Carousel";
+import { AcceptButton, DeclineButton, PriceLine } from "@/components/veriscope/FunnelUI";
+import { INTELLIGENCE, INTELLIGENCE_SCREENSHOTS, formatPrice } from "@/lib/veriscope";
+import { buy } from "@/lib/orders";
 import {
-  AcceptButton,
-  DeclineButton,
-  PriceLine,
-  PromptPackModal,
-} from "@/components/veriscope/FunnelUI";
-import {
-  AI_PROMPT_PACK,
-  INTELLIGENCE,
-  INTELLIGENCE_SCREENSHOTS,
-  formatPrice,
-} from "@/lib/veriscope";
-import { OFFERS, ROUTES, acceptOffer, declineOffer, goTo, initFunnelState } from "@/lib/funnel";
+  OFFERS,
+  RETURN_PATH,
+  goTo,
+  markAnswered,
+  nextStepForSession,
+  setIntelligencePath,
+} from "@/lib/funnel";
+
 
 const title = "Uma última possibilidade — Veriscope Intelligence";
 const description =
