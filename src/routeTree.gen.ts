@@ -10,33 +10,219 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CommunityRouteImport } from './routes/community'
+import { Route as A1zgm5qbf7kRouteImport } from './routes/a.1zgm5qbf7k'
+import { Route as A2hf9wsk7rmRouteImport } from './routes/a.2hf9wsk7rm'
+import { Route as A3wjb6mze5pRouteImport } from './routes/a.3wjb6mze5p'
+import { Route as A4kq7ptv2haRouteImport } from './routes/a.4kq7ptv2ha'
+import { Route as A5tn6bjy4qeRouteImport } from './routes/a.5tn6bjy4qe'
+import { Route as A6vpe8ncx3tRouteImport } from './routes/a.6vpe8ncx3t'
+import { Route as A7cxq4dtn8bRouteImport } from './routes/a.7cxq4dtn8b'
+import { Route as A8mzr3xc9wdRouteImport } from './routes/a.8mzr3xc9wd'
+import { Route as A9dks2rhq4vRouteImport } from './routes/a.9dks2rhq4v'
+import { Route as DownsellIntelligenceRouteImport } from './routes/downsell.intelligence'
+import { Route as PagamentoRetornoRouteImport } from './routes/pagamento.retorno'
+import { Route as UpsellIntelligenceRouteImport } from './routes/upsell.intelligence'
+import { Route as UpsellPromptPackRouteImport } from './routes/upsell.prompt-pack'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CommunityRoute = CommunityRouteImport.update({
+  id: '/community',
+  path: '/community',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const A1zgm5qbf7kRoute = A1zgm5qbf7kRouteImport.update({
+  id: '/a/1zgm5qbf7k',
+  path: '/a/1zgm5qbf7k',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const A2hf9wsk7rmRoute = A2hf9wsk7rmRouteImport.update({
+  id: '/a/2hf9wsk7rm',
+  path: '/a/2hf9wsk7rm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const A3wjb6mze5pRoute = A3wjb6mze5pRouteImport.update({
+  id: '/a/3wjb6mze5p',
+  path: '/a/3wjb6mze5p',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const A4kq7ptv2haRoute = A4kq7ptv2haRouteImport.update({
+  id: '/a/4kq7ptv2ha',
+  path: '/a/4kq7ptv2ha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const A5tn6bjy4qeRoute = A5tn6bjy4qeRouteImport.update({
+  id: '/a/5tn6bjy4qe',
+  path: '/a/5tn6bjy4qe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const A6vpe8ncx3tRoute = A6vpe8ncx3tRouteImport.update({
+  id: '/a/6vpe8ncx3t',
+  path: '/a/6vpe8ncx3t',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const A7cxq4dtn8bRoute = A7cxq4dtn8bRouteImport.update({
+  id: '/a/7cxq4dtn8b',
+  path: '/a/7cxq4dtn8b',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const A8mzr3xc9wdRoute = A8mzr3xc9wdRouteImport.update({
+  id: '/a/8mzr3xc9wd',
+  path: '/a/8mzr3xc9wd',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const A9dks2rhq4vRoute = A9dks2rhq4vRouteImport.update({
+  id: '/a/9dks2rhq4v',
+  path: '/a/9dks2rhq4v',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownsellIntelligenceRoute = DownsellIntelligenceRouteImport.update({
+  id: '/downsell/intelligence',
+  path: '/downsell/intelligence',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagamentoRetornoRoute = PagamentoRetornoRouteImport.update({
+  id: '/pagamento/retorno',
+  path: '/pagamento/retorno',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UpsellIntelligenceRoute = UpsellIntelligenceRouteImport.update({
+  id: '/upsell/intelligence',
+  path: '/upsell/intelligence',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UpsellPromptPackRoute = UpsellPromptPackRouteImport.update({
+  id: '/upsell/prompt-pack',
+  path: '/upsell/prompt-pack',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/community': typeof CommunityRoute
+  '/a/1zgm5qbf7k': typeof A1zgm5qbf7kRoute
+  '/a/2hf9wsk7rm': typeof A2hf9wsk7rmRoute
+  '/a/3wjb6mze5p': typeof A3wjb6mze5pRoute
+  '/a/4kq7ptv2ha': typeof A4kq7ptv2haRoute
+  '/a/5tn6bjy4qe': typeof A5tn6bjy4qeRoute
+  '/a/6vpe8ncx3t': typeof A6vpe8ncx3tRoute
+  '/a/7cxq4dtn8b': typeof A7cxq4dtn8bRoute
+  '/a/8mzr3xc9wd': typeof A8mzr3xc9wdRoute
+  '/a/9dks2rhq4v': typeof A9dks2rhq4vRoute
+  '/downsell/intelligence': typeof DownsellIntelligenceRoute
+  '/pagamento/retorno': typeof PagamentoRetornoRoute
+  '/upsell/intelligence': typeof UpsellIntelligenceRoute
+  '/upsell/prompt-pack': typeof UpsellPromptPackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/community': typeof CommunityRoute
+  '/a/1zgm5qbf7k': typeof A1zgm5qbf7kRoute
+  '/a/2hf9wsk7rm': typeof A2hf9wsk7rmRoute
+  '/a/3wjb6mze5p': typeof A3wjb6mze5pRoute
+  '/a/4kq7ptv2ha': typeof A4kq7ptv2haRoute
+  '/a/5tn6bjy4qe': typeof A5tn6bjy4qeRoute
+  '/a/6vpe8ncx3t': typeof A6vpe8ncx3tRoute
+  '/a/7cxq4dtn8b': typeof A7cxq4dtn8bRoute
+  '/a/8mzr3xc9wd': typeof A8mzr3xc9wdRoute
+  '/a/9dks2rhq4v': typeof A9dks2rhq4vRoute
+  '/downsell/intelligence': typeof DownsellIntelligenceRoute
+  '/pagamento/retorno': typeof PagamentoRetornoRoute
+  '/upsell/intelligence': typeof UpsellIntelligenceRoute
+  '/upsell/prompt-pack': typeof UpsellPromptPackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/community': typeof CommunityRoute
+  '/a/1zgm5qbf7k': typeof A1zgm5qbf7kRoute
+  '/a/2hf9wsk7rm': typeof A2hf9wsk7rmRoute
+  '/a/3wjb6mze5p': typeof A3wjb6mze5pRoute
+  '/a/4kq7ptv2ha': typeof A4kq7ptv2haRoute
+  '/a/5tn6bjy4qe': typeof A5tn6bjy4qeRoute
+  '/a/6vpe8ncx3t': typeof A6vpe8ncx3tRoute
+  '/a/7cxq4dtn8b': typeof A7cxq4dtn8bRoute
+  '/a/8mzr3xc9wd': typeof A8mzr3xc9wdRoute
+  '/a/9dks2rhq4v': typeof A9dks2rhq4vRoute
+  '/downsell/intelligence': typeof DownsellIntelligenceRoute
+  '/pagamento/retorno': typeof PagamentoRetornoRoute
+  '/upsell/intelligence': typeof UpsellIntelligenceRoute
+  '/upsell/prompt-pack': typeof UpsellPromptPackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/community'
+    | '/a/1zgm5qbf7k'
+    | '/a/2hf9wsk7rm'
+    | '/a/3wjb6mze5p'
+    | '/a/4kq7ptv2ha'
+    | '/a/5tn6bjy4qe'
+    | '/a/6vpe8ncx3t'
+    | '/a/7cxq4dtn8b'
+    | '/a/8mzr3xc9wd'
+    | '/a/9dks2rhq4v'
+    | '/downsell/intelligence'
+    | '/pagamento/retorno'
+    | '/upsell/intelligence'
+    | '/upsell/prompt-pack'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/community'
+    | '/a/1zgm5qbf7k'
+    | '/a/2hf9wsk7rm'
+    | '/a/3wjb6mze5p'
+    | '/a/4kq7ptv2ha'
+    | '/a/5tn6bjy4qe'
+    | '/a/6vpe8ncx3t'
+    | '/a/7cxq4dtn8b'
+    | '/a/8mzr3xc9wd'
+    | '/a/9dks2rhq4v'
+    | '/downsell/intelligence'
+    | '/pagamento/retorno'
+    | '/upsell/intelligence'
+    | '/upsell/prompt-pack'
+  id:
+    | '__root__'
+    | '/'
+    | '/community'
+    | '/a/1zgm5qbf7k'
+    | '/a/2hf9wsk7rm'
+    | '/a/3wjb6mze5p'
+    | '/a/4kq7ptv2ha'
+    | '/a/5tn6bjy4qe'
+    | '/a/6vpe8ncx3t'
+    | '/a/7cxq4dtn8b'
+    | '/a/8mzr3xc9wd'
+    | '/a/9dks2rhq4v'
+    | '/downsell/intelligence'
+    | '/pagamento/retorno'
+    | '/upsell/intelligence'
+    | '/upsell/prompt-pack'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CommunityRoute: typeof CommunityRoute
+  A1zgm5qbf7kRoute: typeof A1zgm5qbf7kRoute
+  A2hf9wsk7rmRoute: typeof A2hf9wsk7rmRoute
+  A3wjb6mze5pRoute: typeof A3wjb6mze5pRoute
+  A4kq7ptv2haRoute: typeof A4kq7ptv2haRoute
+  A5tn6bjy4qeRoute: typeof A5tn6bjy4qeRoute
+  A6vpe8ncx3tRoute: typeof A6vpe8ncx3tRoute
+  A7cxq4dtn8bRoute: typeof A7cxq4dtn8bRoute
+  A8mzr3xc9wdRoute: typeof A8mzr3xc9wdRoute
+  A9dks2rhq4vRoute: typeof A9dks2rhq4vRoute
+  DownsellIntelligenceRoute: typeof DownsellIntelligenceRoute
+  PagamentoRetornoRoute: typeof PagamentoRetornoRoute
+  UpsellIntelligenceRoute: typeof UpsellIntelligenceRoute
+  UpsellPromptPackRoute: typeof UpsellPromptPackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +234,123 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/community': {
+      id: '/community'
+      path: '/community'
+      fullPath: '/community'
+      preLoaderRoute: typeof CommunityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a/1zgm5qbf7k': {
+      id: '/a/1zgm5qbf7k'
+      path: '/a/1zgm5qbf7k'
+      fullPath: '/a/1zgm5qbf7k'
+      preLoaderRoute: typeof A1zgm5qbf7kRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a/2hf9wsk7rm': {
+      id: '/a/2hf9wsk7rm'
+      path: '/a/2hf9wsk7rm'
+      fullPath: '/a/2hf9wsk7rm'
+      preLoaderRoute: typeof A2hf9wsk7rmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a/3wjb6mze5p': {
+      id: '/a/3wjb6mze5p'
+      path: '/a/3wjb6mze5p'
+      fullPath: '/a/3wjb6mze5p'
+      preLoaderRoute: typeof A3wjb6mze5pRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a/4kq7ptv2ha': {
+      id: '/a/4kq7ptv2ha'
+      path: '/a/4kq7ptv2ha'
+      fullPath: '/a/4kq7ptv2ha'
+      preLoaderRoute: typeof A4kq7ptv2haRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a/5tn6bjy4qe': {
+      id: '/a/5tn6bjy4qe'
+      path: '/a/5tn6bjy4qe'
+      fullPath: '/a/5tn6bjy4qe'
+      preLoaderRoute: typeof A5tn6bjy4qeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a/6vpe8ncx3t': {
+      id: '/a/6vpe8ncx3t'
+      path: '/a/6vpe8ncx3t'
+      fullPath: '/a/6vpe8ncx3t'
+      preLoaderRoute: typeof A6vpe8ncx3tRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a/7cxq4dtn8b': {
+      id: '/a/7cxq4dtn8b'
+      path: '/a/7cxq4dtn8b'
+      fullPath: '/a/7cxq4dtn8b'
+      preLoaderRoute: typeof A7cxq4dtn8bRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a/8mzr3xc9wd': {
+      id: '/a/8mzr3xc9wd'
+      path: '/a/8mzr3xc9wd'
+      fullPath: '/a/8mzr3xc9wd'
+      preLoaderRoute: typeof A8mzr3xc9wdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a/9dks2rhq4v': {
+      id: '/a/9dks2rhq4v'
+      path: '/a/9dks2rhq4v'
+      fullPath: '/a/9dks2rhq4v'
+      preLoaderRoute: typeof A9dks2rhq4vRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/downsell/intelligence': {
+      id: '/downsell/intelligence'
+      path: '/downsell/intelligence'
+      fullPath: '/downsell/intelligence'
+      preLoaderRoute: typeof DownsellIntelligenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pagamento/retorno': {
+      id: '/pagamento/retorno'
+      path: '/pagamento/retorno'
+      fullPath: '/pagamento/retorno'
+      preLoaderRoute: typeof PagamentoRetornoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/upsell/intelligence': {
+      id: '/upsell/intelligence'
+      path: '/upsell/intelligence'
+      fullPath: '/upsell/intelligence'
+      preLoaderRoute: typeof UpsellIntelligenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/upsell/prompt-pack': {
+      id: '/upsell/prompt-pack'
+      path: '/upsell/prompt-pack'
+      fullPath: '/upsell/prompt-pack'
+      preLoaderRoute: typeof UpsellPromptPackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CommunityRoute: CommunityRoute,
+  A1zgm5qbf7kRoute: A1zgm5qbf7kRoute,
+  A2hf9wsk7rmRoute: A2hf9wsk7rmRoute,
+  A3wjb6mze5pRoute: A3wjb6mze5pRoute,
+  A4kq7ptv2haRoute: A4kq7ptv2haRoute,
+  A5tn6bjy4qeRoute: A5tn6bjy4qeRoute,
+  A6vpe8ncx3tRoute: A6vpe8ncx3tRoute,
+  A7cxq4dtn8bRoute: A7cxq4dtn8bRoute,
+  A8mzr3xc9wdRoute: A8mzr3xc9wdRoute,
+  A9dks2rhq4vRoute: A9dks2rhq4vRoute,
+  DownsellIntelligenceRoute: DownsellIntelligenceRoute,
+  PagamentoRetornoRoute: PagamentoRetornoRoute,
+  UpsellIntelligenceRoute: UpsellIntelligenceRoute,
+  UpsellPromptPackRoute: UpsellPromptPackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

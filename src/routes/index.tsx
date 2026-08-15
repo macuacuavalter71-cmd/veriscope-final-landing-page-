@@ -1,24 +1,51 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+import { Header } from "@/components/veriscope/Header";
+import { Hero } from "@/components/veriscope/Hero";
+import { useLaunchWindow } from "@/components/veriscope/Countdown";
+import { ProductCards } from "@/components/veriscope/ProductCards";
+import { Differentiation } from "@/components/veriscope/Differentiation";
+import { Benefits } from "@/components/veriscope/Benefits";
+import { WhyBundle } from "@/components/veriscope/WhyBundle";
+import { Lightbox } from "@/components/veriscope/Lightbox";
+import { CommunityTeaser } from "@/components/veriscope/CommunityTeaser";
+
+
+const title = "Veriscope Launch — Prime, Edge e Prime + Edge";
+const description =
+  "O Veriscope está oficialmente em lançamento. Escolha entre Edge ($67), Prime ($197) ou Prime + Edge ($247) — contexto no gráfico e ferramentas de suporte no mesmo ecossistema.";
+
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: LaunchPage,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function LaunchPage() {
+  const remaining = useLaunchWindow();
+  const live = !(remaining?.over ?? false);
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background">
+      <Header live={live} />
+      <main>
+        <Hero remaining={remaining} />
+        <ProductCards />
+        <Differentiation />
+        <Benefits />
+        <WhyBundle />
+        <CommunityTeaser />
+
+      </main>
+      <Lightbox />
     </div>
   );
 }
