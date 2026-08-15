@@ -24,7 +24,8 @@ const postSchema = z.object({
 export const postComment = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => postSchema.parse(data))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { createSupabase } = await import("./supabase");
+    const supabaseAdmin = createSupabase();
 
     const { data: comment, error } = await supabaseAdmin
       .from("comments")
@@ -51,7 +52,8 @@ export const postComment = createServerFn({ method: "POST" })
 export const likeComment = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { createSupabase } = await import("./supabase");
+    const supabaseAdmin = createSupabase();
     const { data: likes, error } = await supabaseAdmin.rpc("like_comment", { _id: data.id });
     if (error) throw new Error("Não foi possível registar o like.");
     return { likes: likes ?? 0 };
@@ -60,7 +62,8 @@ export const likeComment = createServerFn({ method: "POST" })
 export const toggleLaunchLike = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ liked: z.boolean() }).parse(data))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { createSupabase } = await import("./supabase");
+    const supabaseAdmin = createSupabase();
     const { data: likes, error } = await supabaseAdmin.rpc("adjust_launch_likes", {
       _delta: data.liked ? 1 : -1,
     });
