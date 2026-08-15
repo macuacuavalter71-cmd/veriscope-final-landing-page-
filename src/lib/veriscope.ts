@@ -131,25 +131,9 @@ export const AI_PROMPT_PACK = {
 } as const;
 
 /**
- * Upsell 2 pricing is defined by the funnel pricing policy.
- * Leave as null until it is finalised — the UI hides the amount instead of
- * showing an invented number.
- */
-export const TRADE_PILOT_ALERT_ENGINE = {
-  id: "trade-pilot-alert-engine",
-  name: "Trade Pilot + Alert Engine",
-  regularPrice: null as number | null,
-  offerPrice: null as number | null,
-  downsellPrice: null as number | null,
-  currency: CURRENCY,
-} as const;
-
-/**
  * Real product screenshots. Empty until the verified image pack is supplied —
  * the carousel never renders invented or mocked screenshots.
  */
 export type Screenshot = { src: string; alt: string; caption: string };
 
 export const INTELLIGENCE_SCREENSHOTS: Screenshot[] = [];
-export const TRADE_PILOT_SCREENSHOTS: Screenshot[] = [];
-export const ALERT_ENGINE_SCREENSHOTS: Screenshot[] = [];

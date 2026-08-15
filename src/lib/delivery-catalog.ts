@@ -6,8 +6,6 @@
  */
 import primeDoc from "@/assets/prime-doc.asset.json";
 import intelligenceDoc from "@/assets/intelligence-doc.asset.json";
-import tradePilotDoc from "@/assets/trade-pilot-doc.asset.json";
-import alertEngineDoc from "@/assets/alert-engine-doc.asset.json";
 import edgeExcel from "@/assets/edge-excel.asset.json";
 import checklistExcel from "@/assets/checklist-excel.asset.json";
 import checklistPdf from "@/assets/checklist-pdf.asset.json";
@@ -62,20 +60,6 @@ export const DELIVERY_CATALOG: Record<string, DeliveryProduct> = {
     pine: true,
     files: [file("Baixar documento", "Documento", intelligenceDoc)],
   },
-  "trade-pilot": {
-    id: "trade-pilot",
-    name: "Veriscope Trade Pilot",
-    description: "A camada de execução: acompanha a operação depois da decisão estar tomada.",
-    pine: true,
-    files: [file("Baixar documento", "Documento", tradePilotDoc)],
-  },
-  "alert-engine": {
-    id: "alert-engine",
-    name: "Veriscope Alert Engine",
-    description: "A camada de monitorização: avisa quando as condições definidas aparecem.",
-    pine: true,
-    files: [file("Baixar documento", "Documento", alertEngineDoc)],
-  },
   checklist: {
     id: "checklist",
     name: "Veriscope Trade Checklist",
@@ -102,7 +86,5 @@ export const DELIVERY_ORDER = [
   "edge",
   "intelligence",
   "prompt-pack",
-  "trade-pilot",
-  "alert-engine",
   "checklist",
 ];
