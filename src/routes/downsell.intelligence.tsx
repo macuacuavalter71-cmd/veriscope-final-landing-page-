@@ -4,7 +4,12 @@ import { useState } from "react";
 import { Header } from "@/components/veriscope/Header";
 import { Section } from "@/components/veriscope/Section";
 import { Carousel } from "@/components/veriscope/Carousel";
-import { AcceptButton, DeclineButton, PriceLine } from "@/components/veriscope/FunnelUI";
+import {
+  AcceptButton,
+  DeclineButton,
+  PriceLine,
+  PromptPackModal,
+} from "@/components/veriscope/FunnelUI";
 import { INTELLIGENCE, INTELLIGENCE_SCREENSHOTS, formatPrice } from "@/lib/veriscope";
 import { buy } from "@/lib/orders";
 import {
@@ -38,13 +43,20 @@ export const Route = createFileRoute("/downsell/intelligence")({
 
 function DownsellIntelligence() {
   const [busy, setBusy] = useState(false);
+  const [promptPack, setPromptPack] = useState(false);
 
+  // Accepting opens the AI Prompt Pack modal; the hand-off happens on confirm.
   const accept = () => {
+    if (busy) return;
+    setPromptPack(true);
+  };
+
+  const confirm = (withPromptPack: boolean) => {
     if (busy) return;
     setBusy(true);
     markAnswered(OFFERS.intelligenceDownsell);
     setIntelligencePath("downsell");
-    void buy("intelligence_downsell");
+    void buy(withPromptPack ? "intelligence_aiprompt_downsell" : "intelligence_downsell");
   };
 
   // Refusing here closes the Intelligence offer for good: straight to delivery.
@@ -105,6 +117,8 @@ function DownsellIntelligence() {
           />
         </Section>
       </main>
+
+      <PromptPackModal open={promptPack} busy={busy} onConfirm={confirm} />
     </div>
   );
 }

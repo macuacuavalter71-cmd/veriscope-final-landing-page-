@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AI_PROMPT_PACK, formatPrice } from "@/lib/veriscope";
 
 /** Primary (accept) action of a post-purchase offer. */
@@ -62,18 +63,20 @@ export function PriceLine({ from, to }: { from: number; to: number }) {
 }
 
 /**
- * AI Prompt Pack modal, shown only after Intelligence is accepted.
- * Complementary — Intelligence works without it.
+ * AI Prompt Pack modal, shown right after the customer accepts Intelligence
+ * and before the hand-off to Paymento. Ticking the checkbox switches the order
+ * to the combined product; leaving it unticked buys Intelligence alone.
  */
 export function PromptPackModal({
   open,
-  onAccept,
-  onDecline,
+  busy,
+  onConfirm,
 }: {
   open: boolean;
-  onAccept: () => void;
-  onDecline: () => void;
+  busy?: boolean;
+  onConfirm: (withPromptPack: boolean) => void;
 }) {
+  const [checked, setChecked] = useState(false);
   if (!open) return null;
 
   return (
@@ -84,22 +87,33 @@ export function PromptPackModal({
       className="fixed inset-0 z-50 flex items-end justify-center bg-background/85 px-4 py-6 backdrop-blur-sm sm:items-center"
     >
       <div className="panel w-full max-w-md p-6 sm:p-7">
-        <h2 className="font-display text-lg tracking-tight text-foreground">
+        <h2 className="font-display text-lg tracking-tight text-foreground uppercase">
           Quer completar o fluxo?
         </h2>
         <p className="mt-4 text-xs tracking-[0.18em] text-gold uppercase">{AI_PROMPT_PACK.name}</p>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          {AI_PROMPT_PACK.description}
+          Um conjunto separado de prompts desenvolvido para complementar o uso do Intelligence.
         </p>
 
         <div className="hairline my-5" />
         <PriceLine from={AI_PROMPT_PACK.regularPrice} to={AI_PROMPT_PACK.offerPrice} />
 
+        <label className="mt-6 flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-border px-4 py-3 transition-colors hover:border-gold/40">
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => setChecked(e.target.checked)}
+            className="size-4 accent-[var(--gold,#c9a227)]"
+          />
+          <span className="text-sm text-foreground">
+            Adicionar o AI Prompt Pack por {formatPrice(AI_PROMPT_PACK.offerPrice)}
+          </span>
+        </label>
+
         <div className="mt-6">
-          <AcceptButton onClick={onAccept}>
-            Adicionar AI Prompt Pack — {formatPrice(AI_PROMPT_PACK.offerPrice)}
+          <AcceptButton onClick={() => onConfirm(checked)}>
+            {busy ? "A abrir o pagamento…" : "Continuar para o pagamento"}
           </AcceptButton>
-          <DeclineButton onClick={onDecline}>Não, continuar sem o Prompt Pack</DeclineButton>
         </div>
       </div>
     </div>

@@ -42,8 +42,7 @@ export const OFFER_CATALOG: Record<OfferKey, Offer> = {
   bundle: {
     productId: "bundle",
     amount: 247,
-    // TODO: Paymento payment link for the Prime + Edge Bundle was not supplied.
-    link: "",
+    link: "https://app.paymento.io/payment-link/31392EB1C4C9E4623B2646B55EA94EFB",
   },
   intelligence_upsell: {
     productId: "intelligence",

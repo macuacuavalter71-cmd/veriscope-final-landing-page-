@@ -6,12 +6,11 @@ import {
   formatPrice,
   type ProductId,
 } from "@/lib/veriscope";
-import { buy } from "@/lib/orders";
 import { useReveal } from "@/hooks/use-reveal";
 
-/** Writes the pending order (session_id + product) and hands off to Paymento. */
+/** Main products always go through the cart, where the Trade Checklist bump lives. */
 export function startCheckout(productId: ProductId) {
-  void buy(productId as "edge" | "prime" | "bundle");
+  window.location.href = `/cart?product=${productId}`;
 }
 
 
@@ -35,17 +34,6 @@ function BuyButton({
     <button type="button" onClick={() => startCheckout(productId)} className={`${base} ${styles}`}>
       {children}
     </button>
-  );
-}
-
-function LinkButton({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <a
-      href={href}
-      className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-border px-5 py-3 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase transition-colors hover:border-gold/40 hover:text-foreground"
-    >
-      {children}
-    </a>
   );
 }
 
@@ -76,7 +64,6 @@ function EdgeCard() {
       </div>
 
       <div className="mt-6 flex flex-col gap-2.5">
-        <LinkButton href="/edge">Conhecer o Edge</LinkButton>
         <BuyButton productId="edge" variant="outline">
           Obter o Edge — {formatPrice(p.price)}
         </BuyButton>
@@ -165,7 +152,6 @@ function PrimeCard() {
       </div>
 
       <div className="mt-6 flex flex-col gap-2.5">
-        <LinkButton href="/prime">Conhecer o Prime</LinkButton>
         <BuyButton productId="prime" variant="outline">
           Obter Prime — {formatPrice(p.price)}
         </BuyButton>

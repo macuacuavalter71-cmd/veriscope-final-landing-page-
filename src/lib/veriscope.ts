@@ -3,8 +3,12 @@
  * Change the launch window and the product catalogue here only.
  */
 
-/** Launch window end (ISO 8601, UTC). Countdown and post-launch state read this. */
-export const LAUNCH_END_DATE = "2026-09-15T21:00:00.000Z";
+/**
+ * Launch window length: 4h 37m 46s.
+ * The countdown starts when the visitor arrives and keeps running across page
+ * reloads (same tab); a brand new visit starts a fresh window.
+ */
+export const LAUNCH_DURATION_MS = (4 * 3600 + 37 * 60 + 46) * 1000;
 
 export type ProductId = "edge" | "prime" | "bundle";
 
