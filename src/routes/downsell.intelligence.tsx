@@ -105,8 +105,6 @@ function DownsellIntelligence() {
           />
         </Section>
       </main>
-
-      <PromptPackModal open={promptPack} onAccept={acceptPack} onDecline={declinePack} />
     </div>
   );
 }
