@@ -9,7 +9,6 @@
  *  Edge / Prime / Bundle paid
  *      → /upsell/intelligence  (accept → Paymento → back here)
  *          ↘ refuse → /downsell/intelligence
- *      Intelligence paid → /upsell/prompt-pack (combined order + link)
  *      → delivery page for the exact combination bought
  */
 import { getSessionId } from "./session";
@@ -22,7 +21,6 @@ export const RETURN_PATH = "/pagamento/retorno";
 export const FUNNEL_ROUTES = {
   intelligenceUpsell: "/upsell/intelligence",
   intelligenceDownsell: "/downsell/intelligence",
-  promptPack: "/upsell/prompt-pack",
 } as const;
 
 /** Obscure, non-guessable delivery routes — one per paid combination. */
@@ -43,7 +41,6 @@ const ANSWERS_KEY = "veriscope_funnel_answers";
 export const OFFERS = {
   intelligenceUpsell: "intelligence-upsell",
   intelligenceDownsell: "intelligence-downsell",
-  promptPack: "prompt-pack",
 } as const;
 
 export function readAnswers(): string[] {
@@ -113,10 +110,7 @@ export function resolveNextStep(paid: Set<OrderProductId>): NextStep {
 
   if (paid.has("intelligence_aiprompt")) return deliver("intelligence_aiprompt");
 
-  if (paid.has("intelligence")) {
-    if (hasAnswered(OFFERS.promptPack)) return deliver("intelligence");
-    return { kind: "go", path: FUNNEL_ROUTES.promptPack };
-  }
+  if (paid.has("intelligence")) return deliver("intelligence");
 
   if (!hasAnswered(OFFERS.intelligenceUpsell)) {
     return { kind: "go", path: FUNNEL_ROUTES.intelligenceUpsell };
